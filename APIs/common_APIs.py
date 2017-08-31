@@ -69,6 +69,12 @@ def register_caseid(casename):
 
 def get_file_by_re(dir, file_re):
     file_list = []
+    if os.path.exists(dir):
+        pass
+    else:
+        print(dir + ' not exist!\n')
+        return file_list
+
     all_things = os.listdir(dir)
 
     for item in all_things:

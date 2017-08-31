@@ -6,7 +6,6 @@ import serial
 import serial.tools.list_ports
 import ConfigParser
 
-import winpexpect
 import telnetlib
 import paramiko
 
@@ -53,10 +52,10 @@ class MySsh():
 
     def connect(self):
         self.LOG.debug('ssh to %s' % (self.host))
-        paramiko.util.log_to_file(self.log_file + 'ssh.log')
+        #paramiko.util.log_to_file(self.log_file + 'ssh.log')
         self.conn = paramiko.SSHClient()
         self.conn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.conn.connect(self.host, 22, self.user, self.password)
+        self.conn.connect(self.host, 22, self.user, self.password, timeout=5)
 
 
     def send(self, cmd, timeout=5, prompt=None):
@@ -99,7 +98,7 @@ class MyTelnet():
 
     def connect(self):
         self.LOG.debug('telnet to %s' % (self.host))
-        self.conn = telnetlib.Telnet(self.host)
+        self.conn = telnetlib.Telnet(self.host, timeout=5)
         try:
             self.conn.open(self.host)
             time.sleep(1)

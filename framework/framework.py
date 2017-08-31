@@ -59,3 +59,6 @@ class TestCase(object):
 
         if self.ssh.is_open():
             self.ssh.close()
+
+        if self.telnet.is_open():
+            self.telnet.close()            
