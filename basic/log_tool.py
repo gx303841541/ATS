@@ -5,9 +5,10 @@
 by Kobe Gong. 2017-8-21
 """
 
-import logging
+import logging, sys, os
 from  logging.handlers import RotatingFileHandler
 from cprint import cprint
+import traceback
 
 
 # Windows CMD命令行 字体颜色定义 text colors
@@ -52,7 +53,8 @@ class MyLogger:
         
         self.cprint = cprint()
         self.p = logging.getLogger(path)
-        fmt = logging.Formatter('[%(asctime)s] [%(filename)s line:%(lineno)d] [%(levelname)s] %(message)s', '%Y-%m-%d %H:%M:%S')
+        self.p.setLevel(logging.DEBUG)
+        fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', '%m-%d %H:%M:%S')
 
         #设置CMD日志
         if cenable == True:
@@ -76,42 +78,63 @@ class MyLogger:
             self.p.addHandler(rh)
 
     def debug(self, message):
+        s =  traceback.extract_stack()
+        msg_prefix = '[' + os.path.basename(s[-2][0]) + ': ' + str(s[-2][1])  + '] '
+
         self.cprint.set_colour(FOREGROUND_BLUE)
-        self.p.debug(message)
+        self.p.debug(msg_prefix + message)
         self.cprint.reset_colour()
 
 
     def info(self, message):
+        s =  traceback.extract_stack()
+        msg_prefix = '[' + os.path.basename(s[-2][0]) + ': ' + str(s[-2][1])  + '] '
+
         self.cprint.set_colour(FOREGROUND_GREEN)
-        self.p.info(message)
+        self.p.info(msg_prefix + message)
         self.cprint.reset_colour()
 
+    def yinfo(self, message):
+        s =  traceback.extract_stack()
+        msg_prefix = '[' + os.path.basename(s[-2][0]) + ': ' + str(s[-2][1])  + '] '
+
+        self.cprint.set_colour(FOREGROUND_YELLOW)
+        self.p.info(msg_prefix + message)
+        self.cprint.reset_colour()
 
     def warn(self, message):
+        s =  traceback.extract_stack()
+        msg_prefix = '[' + os.path.basename(s[-2][0]) + ': ' + str(s[-2][1])  + '] '
+
         self.cprint.set_colour(FOREGROUND_PINK)
-        self.p.warn(message)
+        self.p.warn(msg_prefix + message)
         self.cprint.reset_colour()       
 
 
     def error(self, message):
+        s =  traceback.extract_stack()
+        msg_prefix = '[' + os.path.basename(s[-2][0]) + ': ' + str(s[-2][1])  + '] '
+
         self.cprint.set_colour(FOREGROUND_RED)
-        self.p.error(message)
+        self.p.error(msg_prefix + message)
         self.cprint.reset_colour()
 
 
     def critical(self, message):
+        s =  traceback.extract_stack()
+        msg_prefix = '[' + os.path.basename(s[-2][0]) + ': ' + str(s[-2][1])  + '] '
+
         self.cprint.set_colour(FOREGROUND_RED)
-        self.p.critical(message)
+        self.p.critical(msg_prefix + message)
         self.cprint.reset_colour()
 
 
 if __name__ =='__main__':
-    mylog = my_logging('yyx.log',logging.ERROR,logging.DEBUG)
-    mylog.p.info("11111")
-    mylog.p.warn("2222222")
-    mylog.p.info("11111")
-    mylog.p.warn("3333333")
-    mylog.p.info("11111")
-    mylog.p.warn("4444444")
+    mylog = MyLogger('yyx.log')
+    mylog.debug("11111")
+    mylog.info("11111")
+    mylog.warn("11111")
+    mylog.error("11111")
+
     
 

@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 import datetime, sys, os
 import ctypes
+import threading
+
+import APIs.common_APIs as common_APIs
 
 
 # Windows CMD命令行 字体颜色定义 text colors
@@ -44,19 +47,20 @@ STD_INPUT_HANDLE = -10
 STD_OUTPUT_HANDLE = -11
 STD_ERROR_HANDLE = -12
 
-
+cprint_lock = threading.Lock()
 
 class cprint:
 
     std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)  
-      
+    
+    @common_APIs.need_add_lock(cprint_lock)
     def set_colour(self, color, handle=std_out_handle):  
         bool = ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)  
         return bool 
 
-      
-    def reset_colour(self):  
-        self.set_colour(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
+    def reset_colour(self):
+        pass  
+        #self.set_colour(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
 
 
     def __init__(self, value=' '):
@@ -162,13 +166,7 @@ class cprint:
         style = '\033[%sm' % style
         end = '\033[%sm' % self.style['default']['end']
 
-        try:
-            raise Exception
-        except:
-            f = sys.exc_info()[2].tb_frame.f_back
-
         return "%s%s%s" % (style, string, end)
-
 
 			
     def error_p(self, string, mode='defult', fore='red', back=''):
@@ -198,10 +196,6 @@ class cprint:
         style = '\033[%sm' % style
         end = '\033[%sm' % self.style['default']['end']
 
-        try:
-            raise Exception
-        except:
-            f = sys.exc_info()[2].tb_frame.f_back
         return "%s%s%s" % (style, string, end)
 
 		
