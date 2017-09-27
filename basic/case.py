@@ -15,6 +15,7 @@ from APIs.common_APIs import my_system_no_check, my_system, my_system_full_outpu
 
 case_lock = threading.Lock()
 
+#ATS use this to manage a testcase
 CASE_STATE = ['not_start', 'ongoing', 'running', 'done']
 class Case():
     def __init__(self, config_file, id, name, dir, state='not_start'):

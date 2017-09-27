@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-"""common tool
+"""common APIs
 by Kobe Gong 2017-8-21
+use:
+    all the funcs can be used by any module should be here
 """
 
 #import queue, fcntl
@@ -17,7 +19,7 @@ def file_lock(open_file):
     return fcntl.flock(open_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
 def file_unlock(open_file):
-    return fcntl.flock(open_file, fcntl.LOCK_UN)  
+    return fcntl.flock(open_file, fcntl.LOCK_UN)
 '''
 
 
@@ -45,7 +47,7 @@ def full_output(*popenargs, **kwargs):
 def my_system(*cmd):
     return check_output(*cmd, universal_newlines=True, shell=True)
 
-    
+
 #run a cmd without check exec result
 def my_system_no_check(*cmd):
     print('run:' + cmd[0])
@@ -57,7 +59,7 @@ def my_system_full_output(*cmd):
     print('run:' + cmd[0])
     return full_output(*cmd, universal_newlines=True, shell=True)
 
- 
+
 def register_caseid(casename):
     def cls_decorator(cls):
         def __init__(self, config_file='C:\\ATS\\config.ini', case_id='xxxxxxxx'):
@@ -68,6 +70,7 @@ def register_caseid(casename):
     return cls_decorator
 
 
+#get all the files match regex 'file_re' from a dir
 def get_file_by_re(dir, file_re):
     file_list = []
     if os.path.exists(dir):
@@ -91,28 +94,29 @@ def get_file_by_re(dir, file_re):
     return file_list
 
 
-def dir_copy(source_dir, target_dir):   
+#use to copy a dir to another dir
+def dir_copy(source_dir, target_dir):
     for f in os.listdir(source_dir):
         sourceF = os.path.join(source_dir, f)
         targetF = os.path.join(target_dir, f)
 
-        if os.path.isfile(sourceF):   
-            #创建目录   
+        if os.path.isfile(sourceF):
+            #创建目录
             if not os.path.exists(targetF):
                 os.makedirs(target_dir)
-             
-            #文件不存在，或者存在但是大小不同，覆盖   
+
+            #文件不存在，或者存在但是大小不同，覆盖
             if not os.path.exists(targetF) or (os.path.exists(targetF) and (os.path.getsize(targetF) != os.path.getsize(sourceF))):
                 #2进制文件
-                open(targetF, "wb").write(open(sourceF, "rb").read())  
+                open(targetF, "wb").write(open(sourceF, "rb").read())
             else:
                 pass
-    
-        elif os.path.isdir(sourceF):   
-            dir_copy(sourceF, targetF) 
+
+        elif os.path.isdir(sourceF):
+            dir_copy(sourceF, targetF)
 
 
-
+#use to make a dir standard
 def dirit(dir):
     if not dir.endswith(os.path.sep):
         dir += os.path.sep
@@ -120,6 +124,7 @@ def dirit(dir):
     return re.sub(r'%s+' % (re.escape(os.path.sep)), re.escape(os.path.sep), dir, re.S)
 
 
+#use to add lock befow call the func
 def need_add_lock(lock):
     def sync_with_lock(func):
         @functools.wraps(func)

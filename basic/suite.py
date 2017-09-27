@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""case tool
+"""suite mgr
    by Kobe Gong. 2017-8-25
 """
 
@@ -20,6 +20,7 @@ from APIs.common_APIs import my_system_no_check, my_system, my_system_full_outpu
 suite_lock = threading.Lock()
 
 
+#ATS use this to manage a suite
 class Suite():
     def __init__(self, config_file, id, name, cases, sub_suites):
         self.config_file = config_file

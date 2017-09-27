@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+
+"""colour print tool
+by Kobe Gong. 2017-8-21
+"""
+
 import datetime, sys, os
 import ctypes
 import threading
@@ -59,7 +64,7 @@ class cprint:
         return bool 
 
     def reset_colour(self):
-        pass  
+        self.set_colour(FOREGROUND_WHITE)
         #self.set_colour(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
 
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""air sim
+by Kobe Gong. 2017-9-11
+"""
 
 import re, sys, time, os, shutil, datetime
 import threading
@@ -22,7 +25,7 @@ from APIs.common_APIs import my_system_no_check, my_system, my_system_full_outpu
 from my_serial.my_serial import MySerial
 from protocol.protocol import Protocol_proc, protocol_data_printB
 
-
+#命令行参数梳理， 目前仅有-p 指定串口端口号
 class ArgHandle():
     def __init__(self):
         self.parser = self.build_option_parser("-" * 50)
@@ -67,6 +70,7 @@ class ArgHandle():
         self.check_args()
 
 
+#CMD loop, 可以查看各个串口的消息统计
 class MyCmd(Cmd): 
     def __init__(self, coms_list):
         Cmd.__init__(self)
@@ -136,6 +140,7 @@ class MyCmd(Cmd):
         sys.exit()
   
 
+#通讯类， 负责各个串口消息的收发
 class communication_gay():
     def __init__(self, port=None, baudrate=9600, logger=None):
         self.port = port
@@ -146,6 +151,7 @@ class communication_gay():
         self.msg_statistics = defaultdict(int)
         self.state = 'close'
         self.logger = logger
+        self.left_data = ''
 
     def run_forever(self):
         while True:
@@ -158,7 +164,10 @@ class communication_gay():
 
                     debug = 0
                     if debug:
-                        self.queue_in.put(b'\xFF\xFF\x0C\x00\x00\x00\x00\x00\x01\x01\x4d\x24\x00\x01\x80')
+                        self.queue_in.put(b'\xFF\xFF\x0c\x00\x00\x00\x00\x00\x01\x01\x4d\x24\x00\x01\x80')
+                        self.queue_in.put(b'\xff\xff\x0c\x00\x00\x00\x00\x00\x00\x01\x5d\x01\x00')
+                        self.queue_in.put(b'\x0c\x77\xff\xff\x0a\x00\x00\x00\x00\x00\x00\x01\x4d\x01\x59')
+                        self.queue_in.put(b'\xff\xff\x0a\x00\x00\x00\x00\x00\x00\x01\x4d\x01\x59')
                         debug = 0
 
                 else:
@@ -195,7 +204,7 @@ class communication_gay():
                     self.logger.yinfo(protocol_data_printB(data, title=self.port + " send data:"))
                     self.serial.write(data)
 
-            time.sleep(0.1)
+            #time.sleep(0.1)
 
     def get_state(self):
         return self.state
@@ -210,6 +219,7 @@ class communication_gay():
         return self.msg_statistics
 
 
+#系统调度
 def sys_proc(action="default"):
     global thread_ids
     thread_ids = []
@@ -225,14 +235,17 @@ def sys_proc(action="default"):
     #    th.join() 
 
 
+#系统初始化函数，在所有模块开始前调用
 def sys_init():
     LOG.info("Let's go!!!")
 
 
+#系统清理函数，系统推出前调用
 def sys_cleanup():
     LOG.info("Goodbye!!!")
-        
 
+        
+#空调模拟程序入口
 if __name__ == '__main__':
     #sys log init
     LOG = MyLogger(__name__ + ".log", clevel=logging.DEBUG, rlevel=logging.WARN)

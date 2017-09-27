@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+"""air sim protocol handle
+by Kobe Gong. 2017-9-13
+"""
+
 import os, logging, datetime, re, sys, time, struct
 from abc import ABCMeta, abstractmethod
 import binascii
-import crcmod.predefined
 
+#空调模拟器
 class Air():
-    def __init__(self, ):
+    def __init__(self, logger=None):
         #当前温度 1word
         self._TEMP = b'\x00\x1C'
 
@@ -49,15 +54,26 @@ class Air():
 
         #字B：WORDB( 1 word ) 
         self._WORDB = b'\x00\x00'
+        self.logger = logger
 
-    def TEMP_set(self, word):
+    #存储空调设置温度
+    def TEMP_set(self, word, ifprint=0):
         if self.bit_get(word, 15):
+            if ifprint:
+                temp1 = struct.unpack('BB', word)
+                temp2 = temp1[0] * 256 + temp1[1] + 16 + 0.5
+                self.logger.debug("设定温度".decode('utf-8').encode(sys.getfilesystemencoding()) + ': %0.1f' % (temp2))
             self.WORDA_set_bit(5)
         else:
+            if ifprint:
+                temp1 = struct.unpack('BB', word)
+                temp2 = temp1[0] * 256 + temp1[1] + 16
+                self.logger.debug("设定温度".decode('utf-8').encode(sys.getfilesystemencoding()) + ': %d' % (temp2))            
             self.WORDA_clear_bit(5)
         self._STEMP = word
+        self._TEMP = word
 
-
+    #存储空调送风设置，UD_data：上下送风标志， LR_data：左右送风标志
     def SOLLDH_set(self, UD_data=None, LR_data=None):
         if UD_data:
             if self.bit_get(UD_data, 0):
@@ -71,30 +87,61 @@ class Air():
             else:
                 self._SOLLDH = self.bit_set(self._SOLLDH, 1)
 
-    def WIND_set(self, word):
+    #存储空调风速设置
+    def WIND_set(self, word, ifprint=0):
         if word in [b'\x00\x00', b'\x00\x01', b'\x00\x02', b'\x00\x03']:
             self._WIND = word
+            if ifprint:
+                if word == b'\x00\x00':
+                    self.logger.debug("风速高风".decode('utf-8').encode(sys.getfilesystemencoding()))
+                elif word == b'\x00\x01':
+                    self.logger.debug("风速中风".decode('utf-8').encode(sys.getfilesystemencoding()))
+                elif word == b'\x00\x02':
+                    self.logger.debug("风速低风".decode('utf-8').encode(sys.getfilesystemencoding()))
+                else:
+                    self.logger.debug("风速自动".decode('utf-8').encode(sys.getfilesystemencoding()))
         else:
-            pass
+            self.logger.error("风速设置异常".decode('utf-8').encode(sys.getfilesystemencoding()))
 
-    def MODE_set(self, word):
+    #存储空调模式设置
+    def MODE_set(self, word, ifprint=0):
         if word in [b'\x00\x00', b'\x00\x01', b'\x00\x02', b'\x00\x03', b'\x00\x04']:
             self._MODE = word
+            if ifprint:
+                if word == b'\x00\x00':
+                    self.logger.debug("自动模式".decode('utf-8').encode(sys.getfilesystemencoding()))
+                elif word == b'\x00\x01':
+                    self.logger.debug("制冷模式".decode('utf-8').encode(sys.getfilesystemencoding()))
+                elif word == b'\x00\x02':
+                    self.logger.debug("制热模式".decode('utf-8').encode(sys.getfilesystemencoding()))
+                elif word == b'\x00\x03':
+                    self.logger.debug("送风模式".decode('utf-8').encode(sys.getfilesystemencoding()))                                        
+                else:
+                    self.logger.debug("除湿模式".decode('utf-8').encode(sys.getfilesystemencoding()))           
         else:
-            pass
+            self.logger.error("模式设置异常".decode('utf-8').encode(sys.getfilesystemencoding()))
 
-    def HUMSD_set(self, word):
+    #存储空调湿度设置
+    def HUMSD_set(self, word, ifprint=0):
         self._HUMSD = word
+        if ifprint:
+            temp1 = struct.unpack('BB', word)
+            temp2 = temp1[0] * 256 + temp1[1]
+            self.logger.debug("除湿湿度".decode('utf-8').encode(sys.getfilesystemencoding()) + ': %0.1f' % (temp2))
 
+    #设置WORDA的某位
     def WORDA_set_bit(self, bit):
         self._WORDA = self.bit_set(self._WORDA, bit)
 
+    #清除WORDA的某位
     def WORDA_clear_bit(self, bit):
         self._WORDA = self.bit_clear(self._WORDA, bit)       
 
+    #设置WORDB的某位
     def WORDB_set_bit(self, bit):
         self._WORDB = self.bit_set(self._WORDB, bit)
 
+    #清除WORDB的某位
     def WORDB_clear_bit(self, bit):
         self._WORDB = self.bit_clear(self._WORDB, bit) 
 
@@ -116,6 +163,7 @@ class Air():
         temp2 = temp2 & ~(1 << bit)
         return struct.pack('BB', temp2 >> 8, temp2 % 256) 
 
+    #生成空调返回给模块的消息
     def msg_build(self):
         data = (self._TEMP + self._HHON + self._MMON + self._HHOFF + self._MMOFF 
                 + self._MODE + self._WIND + self._SOLLDH + self._WORDA + self._WORDB + self._HUMSD + self._STEMP)
@@ -136,24 +184,26 @@ class Air():
         return answer
 
 
-
+#调度类，处理来自各个串口的消息
 class Protocol_proc():
     def __init__(self, coms_list, logger=None):
         self.coms_list = coms_list
         self.logger = logger
-        self.air = Air()
+        self.air = Air(logger=self.logger)
 
+    #处理来自各个串口的消息
     def run_forever(self):
         while True:
             for com in self.coms_list:
                 if self.coms_list[com].queue_in.empty():
                     continue
                 else:
-                    ori_data = self.coms_list[com].queue_in.get()
+                    ori_data = self.coms_list[com].left_data + self.coms_list[com].queue_in.get()
                     while len(ori_data) < 13:
                         ori_data += self.coms_list[com].queue_in.get()
 
-                    data_list = self.protocol_data_wash(ori_data)
+                    data_list, left_data = self.protocol_data_wash(ori_data)
+                    self.coms_list[com].left_data = left_data
                     if data_list:
                         for request_data in data_list:                
                             response_data = self.protocol_handler(request_data)
@@ -164,133 +214,164 @@ class Protocol_proc():
                                 pass
                                 #self.logger.error(protocol_data_printB(ori_data, title='%s: invalid data:' % (self.coms_list[com].port, request_data)))
                     else:
-                        self.logger.error(protocol_data_printB(ori_data, title='%s: invalid data:' % (self.coms_list[com].port)))
+                        #self.logger.error(protocol_data_printB(ori_data, title='%s: invalid data:' % (self.coms_list[com].port)))
                         continue
             #time.sleep(0.1) 
 
+    #构建返回给wifi模块的消息
     def protocol_build(self):
         return self.air.msg_build()
 
+    #根据来自wifi模块的消息更新空调模拟器的数据记录
     def protocol_handler(self, data):
         #查询
         if data[10:12] == b'\x4d\x01':
+            self.logger.debug("查询命令".decode('utf-8').encode(sys.getfilesystemencoding()))
             #too much such msg, ignore it
             return self.protocol_build()
             pass
 
         #开机
         elif data[10:12] == b'\x4d\x02':
+            self.logger.debug("开机".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_set_bit(0)
             return self.protocol_build()
 
         #关机
         elif data[10:12] == b'\x4d\x03':
+            self.logger.debug("关机".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_clear_bit(0)
             return self.protocol_build()
 
         #电加热 无
         elif data[10:12] == b'\x4d\x04':
+            self.logger.debug("电加热 无".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_clear_bit(1)
             return self.protocol_build()
 
         #电加热 有
         elif data[10:12] == b'\x4d\x05':
+            self.logger.debug("电加热 有".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_set_bit(1)
             return self.protocol_build()
 
         #健康 无
         elif data[10:12] == b'\x4d\x08':
+            self.logger.debug("健康 无".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_clear_bit(3)
             return self.protocol_build()
 
         #健康 有
         elif data[10:12] == b'\x4d\x09':
+            self.logger.debug("健康 有".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_set_bit(3)
             return self.protocol_build()
 
         #设定温度
         elif data[10:12] == b'\x5d\x01':
-            self.air.TEMP_set(data[12:14])
+            self.air.TEMP_set(data[12:14], ifprint=1)
             return self.protocol_build()
 
         #电子锁 无
         elif data[10:12] == b'\x4d\x18':
+            self.logger.debug("电子锁 无".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_clear_bit(15)
             return self.protocol_build()
 
         #电子锁 有
         elif data[10:12] == b'\x4d\x19':
+            self.logger.debug("电子锁 有".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_set_bit(15)
             return self.protocol_build()
 
         #换新风 无
         elif data[10:12] == b'\x4d\x1e':
+            self.logger.debug("换新风 无".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDB_clear_bit(0)
             return self.protocol_build()
 
         #换新风 有
         elif data[10:12] == b'\x4d\x1f':
+            self.logger.debug("换新风 有".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDB_set_bit(0)
             return self.protocol_build()
 
         #加湿 无
         elif data[10:12] == b'\x4d\x1c':
+            self.logger.debug("加湿 无".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_clear_bit(6)
             return self.protocol_build()
 
         #加湿 有
         elif data[10:12] == b'\x4d\x1d':
+            self.logger.debug("加湿 有".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_set_bit(6)
             return self.protocol_build()
 
         #上下摆风
         elif data[10:12] == b'\x4d\x22':
+            if data[12:14] == b'\x00\x01':
+                self.logger.debug("上下摆风 有".decode('utf-8').encode(sys.getfilesystemencoding()))
+            else:
+                self.logger.debug("上下摆风 无".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.SOLLDH_set(UD_data=data[12:14])
             return self.protocol_build()
 
         #左右摆风
         elif data[10:12] == b'\x4d\x23':
+            if data[12:14] == b'\x00\x01':
+                self.logger.debug("左右摆风 有".decode('utf-8').encode(sys.getfilesystemencoding()))
+            else:
+                self.logger.debug("左右摆风 无".decode('utf-8').encode(sys.getfilesystemencoding()))            
             self.air.SOLLDH_set(LR_data=data[12:14])
             return self.protocol_build()
 
-        #上下摆风
+        #上下左右摆风
         elif data[10:12] == b'\x4d\x24':
+            if data[12:14] == b'\x00\x01':
+                self.logger.debug("全摆风 有".decode('utf-8').encode(sys.getfilesystemencoding()))
+            else:
+                self.logger.debug("全摆风 无".decode('utf-8').encode(sys.getfilesystemencoding()))            
             self.air.SOLLDH_set(UD_data=data[12:14], LR_data=data[12:14])
             return self.protocol_build()
 
         #自清洁 无
         #elif data[10:12] == b'\x4d\x1c':
+        #    self.logger.debug("自清洁 无".decode('utf-8').encode(sys.getfilesystemencoding()))
         #    self.air.WORDA_clear_bit(6)
         #    return self.protocol_build()
 
         #自清洁 有
         elif data[10:12] == b'\x4d\x26':
+            self.logger.debug("自清洁 有".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_set_bit(2)
             return self.protocol_build()
 
         #感人功能 无
         elif data[10:12] == b'\x4d\x28':
+            self.logger.debug("感人功能 无".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_clear_bit(12)
             return self.protocol_build()
 
         #感人功能 有
         elif data[10:12] == b'\x4d\x27':
+            self.logger.debug("感人功能 有".decode('utf-8').encode(sys.getfilesystemencoding()))
             self.air.WORDA_set_bit(12)
             return self.protocol_build()
 
         #风速
         elif data[10:12] == b'\x5d\x07':
-            self.air.WIND_set(data[12:14])
+            self.air.WIND_set(data[12:14], ifprint=1)
             return self.protocol_build()
 
         #模式
         elif data[10:12] == b'\x5d\x08':
-            self.air.MODE_set(data[12:14])
+            self.air.MODE_set(data[12:14], ifprint=1)
             return self.protocol_build()
 
         #健康除湿湿度
         elif data[10:12] == b'\x4d\x0d':
-            self.air.HUMSD_set(data[12:14])
+            self.air.HUMSD_set(data[12:14], ifprint=1)
             return self.protocol_build()
 
         #组控制命令
@@ -301,30 +382,37 @@ class Protocol_proc():
             self.logger.error(protocol_data_printB(data, title='%s: invalid data:'))
             return self.protocol_build()
 
+    #数据清洗， 清除掉可能混杂在串口中的未知数据
     def protocol_data_wash(self, msg):
         data_list = []
+        left_data = ''
 
         while msg[0] != b'\xff' and len(msg) >= 13:
             self.logger.debug('give up dirty data: %02x' % ord(msg[0]))
             msg = msg[1:]
 
         if len(msg) < 13:
-            pass
+            left_data = msg
         else:
             if msg[0] == b'\xff' and msg[1] == b'\xff':
                 length = struct.unpack('>B', msg[2])[0]
                 #min length is 10
-                if length >= 10:
+                if length >= 10 and length <= len(msg[3:]):
                     #data_list.append(struct.unpack('%ds' % (length), msg[3:])[0])
                     data_list.append(msg[0:3 + length])
                     msg = msg[3 + length:]
                     if msg:
-                        data_list += self.protocol_data_wash(msg)
-
+                        data_list_tmp, left_data_tmp = self.protocol_data_wash(msg)
+                        data_list += data_list_tmp
+                        left_data += left_data_tmp
+                elif length >= 10:
+                    left_data = msg
                 else:
-                    pass
+                    for s in msg[:3]:
+                        self.logger.debug('give up dirty data: %02x' % ord(s))
+                    left_data = msg[3:]
 
-        return data_list
+        return data_list, left_data
 
 
 def protocol_data_printB(data, title=''):
