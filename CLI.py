@@ -148,7 +148,7 @@ class MyCmd(Cmd):
             for item in sorted(self.cases[arg].__dict__):
                 if item in ['config_file', 'cprint']:
                     continue
-                
+
                 cprint.common_p("    " + item.ljust(20) + ':    ' +
                                 str(getattr(self.cases[arg], item)).ljust(40))
             cprint.debug_p('-' * 30)
