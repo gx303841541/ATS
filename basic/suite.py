@@ -5,7 +5,13 @@
    by Kobe Gong. 2017-8-25
 """
 
-import re, random, sys, time, os, shutil, datetime
+import re
+import random
+import sys
+import time
+import os
+import shutil
+import datetime
 import threading
 import functools
 import logging
@@ -17,10 +23,10 @@ from basic.cprint import cprint
 import APIs.common_APIs as common_APIs
 from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output
 
-suite_lock = threading.Lock()
+#suite_lock = threading.Lock()
 
 
-#ATS use this to manage a suite
+# ATS use this to manage a suite
 class Suite():
     def __init__(self, config_file, id, name, cases, sub_suites):
         self.config_file = config_file
@@ -35,33 +41,29 @@ class Suite():
 
         self.fail_cases = []
 
+    def __cmp__(self, other):
+        if self.__eq__(other):
+            return 0
+        elif self.__lt__(other):
+            return -1
+        else:
+            return 1
 
-    def __cmp__(self, other):  
-        if self.__eq__(other):  
-            return 0  
-        elif self.__lt__(other):  
-            return -1  
-        else:  
-            return 1  
-  
+    def __eq__(self, other):
+        if not isinstance(other, Suite):
+            raise TypeError, "Can't cmp other type to Suite!"
+        if self.name == other.name:
+            return True
+        else:
+            return False
 
-    def __eq__(self, other):  
-        if not isinstance(other, Suite):  
-            raise TypeError, "Can't cmp other type to Suite!"  
-        if self.name == other.name:  
-            return True  
-        else:  
-            return False 
-
-
-    def __lt__(self, other):  
-        if not isinstance(other, Suite):  
-            raise TypeError, "Can't cmp other type to Suite!"  
-        if self.name < other.name:  
-            return True   
-        else:  
-            return False 
-
+    def __lt__(self, other):
+        if not isinstance(other, Suite):
+            raise TypeError, "Can't cmp other type to Suite!"
+        if self.name < other.name:
+            return True
+        else:
+            return False
 
     def __clean_testlog(self):
         try:
@@ -69,26 +71,25 @@ class Suite():
             dir_separator = os.path.sep
 
             if os.path.exists(self.log_dir + dir_separator + 'tmp' + dir_separator):
-                shutil.rmtree(self.log_dir + dir_separator + 'tmp' + dir_separator)
+                shutil.rmtree(self.log_dir + dir_separator +
+                              'tmp' + dir_separator)
             os.mkdir(self.log_dir + dir_separator + 'tmp' + dir_separator)
 
         except Exception as er:
             self.cprint.error_p("Something wrong!!![%s]" % (er))
-
 
     def __get_tmp_dir(self):
         log_dir = self.log_dir
         dir_separator = os.path.sep
         return common_APIs.dirit(self.log_dir + dir_separator + 'tmp' + dir_separator)
 
-
     def __get_suite_dir(self):
         suite_name = re.sub(r'^[A-Z]+:', '', self.name, re.S)
         log_dir = self.config_file.get("system", "result_dir")
         dir_separator = os.path.sep
-        log_dir += dir_separator + re.sub(r'%s+' % (re.escape(dir_separator)), '_', suite_name, re.S) + '-' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + dir_separator
-        return common_APIs.dirit(log_dir) 
-
+        log_dir += dir_separator + re.sub(r'%s+' % (re.escape(dir_separator)), '_', suite_name,
+                                          re.S) + '-' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + dir_separator
+        return common_APIs.dirit(log_dir)
 
     def get_suite_id(self):
         return self.id
@@ -123,7 +124,6 @@ class Suite():
             LOG.p.warn(new_state + " is invalid state!")
             return False
 
-
     def run(self):
         self.__clean_testlog()
 
@@ -132,12 +132,15 @@ class Suite():
         try:
             os.mkdir(log_dir)
         except Exception as er:
-            cprint.error_p('Can not create log dir: %s\n[[%s]]' % (log_dir, str(er)))
+            cprint.error_p(
+                'Can not create log dir: %s\n[[%s]]' % (log_dir, str(er)))
             sys.exit()
 
-        cmd_result = my_system_no_check("nosetests -w {} -v -s --exe --with-id --with-xunit --xunit-file={} --with-html-output --html-out-file={} 2>{}".format(self.get_suite_name(), log_dir + 'result.xml', log_dir + 'result.html', log_dir + 'stdout.log'))
+        cmd_result = my_system_no_check("nosetests -w {} -v -s --exe --with-id --with-xunit --xunit-file={} --with-html-output --html-out-file={} 2>{}".format(
+            self.get_suite_name(), log_dir + 'result.xml', log_dir + 'result.html', log_dir + 'stdout.log'))
         common_APIs.dir_copy(self.__get_tmp_dir(), log_dir)
         return log_dir
+
 
 '''
 class SuiteResource():
@@ -161,6 +164,3 @@ class SuiteResource():
 
 if __name__ == '__main__':
     pass
-
-
-

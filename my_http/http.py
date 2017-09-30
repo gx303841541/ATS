@@ -156,7 +156,7 @@ class Http():
             }
         }
         msg_on["params"]['SSID'] = ssid
-        msg_on["params"]["password"] = password      
+        msg_on["params"]["password"] = password
         return self.httpsend(json.dumps(msg_on))
 
     #查询路由器类型

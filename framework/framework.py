@@ -11,6 +11,7 @@ import os
 import sys
 import re
 import datetime
+import traceback
 from abc import ABCMeta, abstractmethod
 
 from nose.tools import with_setup, nottest, istest
@@ -42,6 +43,7 @@ class TestCase(object):
         try:
             result = self.run()
         except Exception as e:
+            traceback.print_exc()
             self.LOG.critical(str(e))
             assert False
         else:

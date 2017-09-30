@@ -8,10 +8,12 @@ use:
 
 #import queue, fcntl
 import threading
-import re, os, sys
+import re
+import os
+import sys
 from subprocess import *
 import functools
-
+import struct
 
 
 '''
@@ -29,6 +31,7 @@ def get_output(*popenargs, **kwargs):
     retcode = process.poll()
     return output
 
+
 def pipe_output(*popenargs, **kwargs):
     process = Popen(*popenargs, stdout=PIPE, stderr=PIPE, **kwargs)
     output, unused_err = process.communicate()
@@ -43,18 +46,18 @@ def full_output(*popenargs, **kwargs):
     return output
 
 
-#run a cmd and check exec result
+# run a cmd and check exec result
 def my_system(*cmd):
     return check_output(*cmd, universal_newlines=True, shell=True)
 
 
-#run a cmd without check exec result
+# run a cmd without check exec result
 def my_system_no_check(*cmd):
     print('run:' + cmd[0])
     return get_output(*cmd, universal_newlines=True, shell=True)
 
 
-#run a cmd without check exec result
+# run a cmd without check exec result
 def my_system_full_output(*cmd):
     print('run:' + cmd[0])
     return full_output(*cmd, universal_newlines=True, shell=True)
@@ -70,7 +73,7 @@ def register_caseid(casename):
     return cls_decorator
 
 
-#get all the files match regex 'file_re' from a dir
+# get all the files match regex 'file_re' from a dir
 def get_file_by_re(dir, file_re):
     file_list = []
     if os.path.exists(dir):
@@ -86,7 +89,8 @@ def get_file_by_re(dir, file_re):
             file_list.append(os.path.join(dir, os.path.basename(item)))
 
         elif os.path.isdir(os.path.join(dir, os.path.basename(item))):
-            file_list += get_file_by_re(os.path.join(dir, os.path.basename(item)), file_re)
+            file_list += get_file_by_re(os.path.join(dir,
+                                                     os.path.basename(item)), file_re)
 
         else:
             continue
@@ -94,20 +98,20 @@ def get_file_by_re(dir, file_re):
     return file_list
 
 
-#use to copy a dir to another dir
+# use to copy a dir to another dir
 def dir_copy(source_dir, target_dir):
     for f in os.listdir(source_dir):
         sourceF = os.path.join(source_dir, f)
         targetF = os.path.join(target_dir, f)
 
         if os.path.isfile(sourceF):
-            #创建目录
+            # 创建目录
             if not os.path.exists(targetF):
                 os.makedirs(target_dir)
 
-            #文件不存在，或者存在但是大小不同，覆盖
+            # 文件不存在，或者存在但是大小不同，覆盖
             if not os.path.exists(targetF) or (os.path.exists(targetF) and (os.path.getsize(targetF) != os.path.getsize(sourceF))):
-                #2进制文件
+                # 2进制文件
                 open(targetF, "wb").write(open(sourceF, "rb").read())
             else:
                 pass
@@ -116,7 +120,7 @@ def dir_copy(source_dir, target_dir):
             dir_copy(sourceF, targetF)
 
 
-#use to make a dir standard
+# use to make a dir standard
 def dirit(dir):
     if not dir.endswith(os.path.sep):
         dir += os.path.sep
@@ -124,7 +128,7 @@ def dirit(dir):
     return re.sub(r'%s+' % (re.escape(os.path.sep)), re.escape(os.path.sep), dir, re.S)
 
 
-#use to add lock befow call the func
+# use to add lock befow call the func
 def need_add_lock(lock):
     def sync_with_lock(func):
         @functools.wraps(func)
@@ -137,3 +141,28 @@ def need_add_lock(lock):
 
         return new_func
     return sync_with_lock
+
+
+# Hex print
+def protocol_data_printB(data, title=''):
+    datas = re.findall(r'([\x00-\xff])', data, re.M)
+    ret = title + ' %s bytes:' % (len(datas)) + '\n\t\t'
+    counter = 0
+    for item in datas:
+        ret += '{:02x}'.format(ord(item)) + ' '
+        counter += 1
+        if counter == 10:
+            ret += ' ' + '\n\t\t'
+            counter -= 10
+
+    return ret
+
+
+# create CRC
+def crc(s):
+    result = 0
+    for i in range(len(s)):
+        result += struct.unpack('B', s[i])[0]
+
+    result %= 0xff
+    return struct.pack('B', result)

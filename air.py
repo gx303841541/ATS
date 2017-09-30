@@ -20,20 +20,14 @@ import logging
 import ConfigParser
 from cmd import Cmd
 import decimal
-import Queue
-
-from collections import defaultdict
 
 from basic.log_tool import MyLogger
 from basic.cprint import cprint
 import APIs.common_APIs as common_APIs
-from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output
-from my_serial.my_serial import MySerial
-from protocol.protocol import Protocol_proc, protocol_data_printB
+from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output, protocol_data_printB
+from protocol.air_protocol import Protocol_proc, Air
 
 # 命令行参数梳理， 目前仅有-p 指定串口端口号
-
-
 class ArgHandle():
     def __init__(self):
         self.parser = self.build_option_parser("-" * 50)
@@ -144,91 +138,6 @@ class MyCmd(Cmd):
         sys.exit()
 
 
-# 通讯类， 负责各个串口消息的收发
-class communication_gay():
-    def __init__(self, port=None, baudrate=9600, logger=None):
-        self.port = port
-        self.serial = MySerial(port, baudrate, logger)
-        self.queue_in = Queue.Queue()
-        self.queue_out = Queue.Queue()
-
-        self.msg_statistics = defaultdict(int)
-        self.state = 'close'
-        self.logger = logger
-        self.left_data = ''
-
-    def run_forever(self):
-        while True:
-            if self.serial.is_open():
-                pass
-            else:
-                self.logger.debug(self.port + ' try to open...')
-                if self.serial.open() == 0:
-                    self.set_state('open')
-
-                    debug = 0
-                    if debug:
-                        self.queue_in.put(
-                            b'\xFF\xFF\x0c\x00\x00\x00\x00\x00\x01\x01\x4d\x24\x00\x01\x80')
-                        self.queue_in.put(
-                            b'\xff\xff\x0c\x00\x00\x00\x00\x00\x00\x01\x5d\x01\x00')
-                        self.queue_in.put(
-                            b'\x0c\x77\xff\xff\x0a\x00\x00\x00\x00\x00\x00\x01\x4d\x01\x59')
-                        self.queue_in.put(
-                            b'\xff\xff\x0a\x00\x00\x00\x00\x00\x00\x01\x4d\x01\x59')
-                        debug = 0
-
-                else:
-                    self.logger.warn(self.port + " can't open!")
-                    time.sleep(30)
-                    continue
-
-            # receive data from module
-            if self.serial.readable():
-                datas = ''
-                data = self.serial.readall()
-                while data:
-                    datas += data
-                    data = self.serial.readall()
-
-                if datas:
-                    self.queue_in.put(datas)
-                    self.logger.info(protocol_data_printB(
-                        datas, title=self.port + " recv data:"))
-                else:
-                    #self.logger.debug('No data receive...')
-                    pass
-            else:
-                self.set_state('close')
-                self.logger.error('%s can not read, close it!' % (self.port))
-                self.serial.close()
-
-            # send data to module
-            if self.queue_out.empty():
-                #self.logger.debug('No data need send')
-                pass
-            else:
-                while not self.queue_out.empty():
-                    data = self.queue_out.get()
-                    self.logger.yinfo(protocol_data_printB(
-                        data, title=self.port + " send data:"))
-                    self.serial.write(data)
-
-            # time.sleep(0.1)
-
-    def get_state(self):
-        return self.state
-
-    def set_state(self, new_state):
-        self.state = new_state
-
-    def update_msg_statistics(self, data):
-        self.msg_statistics[data] += 1
-
-    def get_msg_msg_statistics(self):
-        return self.msg_statistics
-
-
 # 系统调度
 def sys_proc(action="default"):
     global thread_ids
@@ -278,7 +187,7 @@ if __name__ == '__main__':
         global coms_list
         coms_list = {}
         for com_id in arg_handle.get_args('port_list'):
-            coms_list[com_id] = communication_gay('COM' + com_id, logger=LOG)
+            coms_list[com_id] = Air('COM' + com_id, logger=LOG)
             thread_list.append([coms_list[com_id].run_forever])
 
         # create protocal handle obj
@@ -290,7 +199,7 @@ if __name__ == '__main__':
 
         # cmd loop
         signal.signal(signal.SIGINT, lambda signal, frame: cprint.notice_p(
-            'Exit CLI: CTRL+Q, Exit SYSTEM: exit'))
+            'Exit SYSTEM: exit'))
         my_cmd = MyCmd(coms_list, )
         my_cmd.cmdloop()
 

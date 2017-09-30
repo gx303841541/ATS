@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import os, sys, re, time
+import os, sys, re, time, Queue
+sys.path.append(os.path.abspath('.'))
 from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
 import my_socket.my_socket as my_socket
@@ -11,8 +12,8 @@ class Test(common_methods.CommMethod):
 
     def run(self):
 
-        server = my_socket.MyServer(('', 8888), self.LOG)
-        server.run_forever()
+        client = my_socket.MyClient(('172.18.151.33', 8888), self.LOG, Queue.Queue(), Queue.Queue())
+        client.run_forever()
         return 0
 
         self.telnet.connect()
@@ -51,7 +52,7 @@ class Test(common_methods.CommMethod):
         return 0
 
 
+
 if __name__ == '__main__':
     c = Test()
-    #c.run()
-    c.LOG.warn('just for test!')
+    c.run()
