@@ -21,6 +21,8 @@ import ConfigParser
 from cmd import Cmd
 import decimal
 
+from collections import defaultdict
+
 from basic.log_tool import MyLogger
 from basic.cprint import cprint
 import APIs.common_APIs as common_APIs

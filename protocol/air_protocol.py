@@ -22,8 +22,6 @@ from APIs.common_APIs import crc, protocol_data_printB
 from my_serial.my_serial import MySerial
 
 # 空调模拟器
-
-
 class Air():
     def __init__(self, port=None, baudrate=9600, logger=None):
         self.port = port
