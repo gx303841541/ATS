@@ -56,8 +56,8 @@ class MyLogger:
         self.cprint = cprint()
         self.p = logging.getLogger(path)
         self.p.setLevel(logging.DEBUG)
-        fmt = logging.Formatter(
-            '[%(asctime)s] [%(levelname)s] %(message)s', '%m-%d %H:%M:%S')
+        #fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', '%m-%d %H:%M:%S')
+        fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
 
         # 设置CMD日志
         if cenable == True:

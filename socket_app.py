@@ -156,8 +156,9 @@ if __name__ == '__main__':
     for i in range(1, arg_handle.get_args('client_count') + 1):
         LOG.yinfo('To create client: %d' % (i))
         client = my_socket.MyClient((arg_handle.get_args('server_IP'), arg_handle.get_args(
-            'server_port')), LOG, Queue.Queue(), Queue.Queue())
+            'server_port')), LOG, Queue.Queue(), Queue.Queue(), heartbeat=15, debug=True)
         thread_list.append([client.run_forever])
+        thread_list.append([client.sendloop])
         clients.append(client)
 
     # run threads

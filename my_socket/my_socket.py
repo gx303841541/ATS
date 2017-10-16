@@ -123,7 +123,7 @@ class MyServer:
 
 
 class MyClient:
-    def __init__(self, addr, logger, queue_in, queue_out):
+    def __init__(self, addr, logger, queue_in, queue_out, heartbeat=False, debug=False):
         self.queue = {
             'queue_in': queue_in,
             'queue_out': queue_out,
@@ -131,6 +131,9 @@ class MyClient:
         self.client = ''
         self.addr = addr
         self.LOG = logger
+        self.connected = False
+        self.heartbeat = heartbeat
+        self.debug = debug
 
     def run_forever(self):
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -146,14 +149,16 @@ class MyClient:
 
                 while not self.queue['queue_out'].empty():
                     self.queue['queue_out'].get_nowait()
+
+                self.connected = True
                 break
             except:
                 self.LOG.warn("Connect to server failed, wait 10s...")
                 time.sleep(10)
 
-        timeout = 0.01
         BUFF_SIZE = 1024
-        timer = 0
+        timeout = 0.01
+
         try:
             while True:
                 readable, writable, exceptional = select.select(
@@ -176,7 +181,8 @@ class MyClient:
                             data = self.client.recv(BUFF_SIZE)
                             if data:
                                 self.queue['queue_in'].put(data)
-                                self.LOG.info("client get data: %s" % (data))
+                                if self.debug:
+                                    self.LOG.info("client get data: %s" % (data))
 
                             else:
                                 self.client.close()
@@ -186,27 +192,35 @@ class MyClient:
                         except socket.error:
                             self.LOG.error("socket error, don't know why.")
 
-                if self.queue['queue_out'].empty():
-                    #self.LOG.debug("client no data to send!")
-                    timer += 1
-                    if timer >= 1500:
-                        timer = 0
-                        self.queue['queue_out'].put('1\n')
-                    pass
-                else:
-                    data = self.queue['queue_out'].get()
-                    self.LOG.yinfo(protocol_data_printB(
-                        data, title="client send date:" % (self)))
-                    self.client.send(data)
-
         except KeyboardInterrupt:
             self.client.close()
             self.LOG.warn("Oh, you killed me...")
             sys.exit(0)
 
-        except:
+        except Exception as e:
             self.client.close()
-            self.LOG.error("server socket closed.")
+            self.LOG.error("server socket closed. %s" % (e))
 
         finally:
             self.LOG.info("End!")
+
+    def sendloop(self):
+        try:
+            while True:
+                while self.connected != True:
+                    pass
+
+                if self.queue['queue_out'].empty():
+                    if self.heartbeat:
+                        time.sleep(self.heartbeat)
+                        self.queue['queue_out'].put('1\n')
+                else:
+                    data = self.queue['queue_out'].get()
+                    if self.debug:
+                        self.LOG.yinfo(protocol_data_printB(data, title="client send date:" % (self)))
+                    self.client.send(data)
+
+        except KeyboardInterrupt:
+            self.client.close()
+            self.LOG.warn("Oh, you killed client send...")
+            sys.exit(0)
