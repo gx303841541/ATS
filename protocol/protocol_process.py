@@ -39,12 +39,10 @@ class PProcess():
                     while len(ori_data) < self.conn_dict[gay].min_length:
                         ori_data += self.conn_dict[gay].queue_in.get()
 
-                    data_list, left_data = self.protocol_data_wash(self.conn_dict[gay], ori_data)
-                    self.conn_dict[gay].left_data = left_data
+                    data_list, self.conn_dict[gay].left_data = self.protocol_data_wash(self.conn_dict[gay], ori_data)
                     if data_list:
                         for request_data in data_list:
-                            response_data = self.protocol_handler(
-                                self.conn_dict[gay], request_data)
+                            response_data = self.protocol_handler(self.conn_dict[gay], request_data)
                             if response_data == 'No_need_send':
                                 pass
                             elif response_data:

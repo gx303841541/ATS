@@ -192,7 +192,7 @@ if __name__ == '__main__':
 
 
     queue_in, queue_out = Queue.Queue(), Queue.Queue()
-    client = my_socket.MyClient(('192.168.10.1', 5100), LOG, queue_in, queue_out)
+    client = my_socket.MyClient(('192.168.10.1', 5100), LOG, queue_in, queue_out, singlethread=False)
     thread_list.append([client.run_forever])
     thread_list.append([client.sendloop])
 

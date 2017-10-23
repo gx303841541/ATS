@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""air sim
-by Kobe Gong. 2017-9-11
+"""multi process app demo
+by Kobe Gong. 2017-10-23
 """
 
 import re
@@ -30,9 +30,7 @@ import APIs.common_APIs as common_APIs
 from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output, protocol_data_printB
 import my_socket.my_socket as my_socket
 
-# 命令行参数梳理， 目前仅有-p 指定串口端口号
-
-
+# 命令行参数
 class ArgHandle():
     def __init__(self):
         self.parser = self.build_option_parser("-" * 50)
@@ -40,30 +38,11 @@ class ArgHandle():
     def build_option_parser(self, description):
         parser = argparse.ArgumentParser(description=description)
         parser.add_argument(
-            '-p', '--server-port',
-            dest='server_port',
-            action='store',
-            default=5100,
-            type=int,
-            help='Specify TCP server port',
+            '-l', '--cmdloop',
+            action='store_true',
+            help='whether go into cmd loop',
         )
-
-        parser.add_argument(
-            '-i', '--server-IP',
-            dest='server_IP',
-            action='store',
-            default='192.168.10.1',
-            help='Specify TCP server IP address',
-        )
-
-        parser.add_argument(
-            '-c', '--client-count',
-            dest='client_count',
-            action='store',
-            default=1,
-            type=int,
-            help='Specify how many socket client will be create',
-        )
+        return parser
         return parser
 
     def get_args(self, attrname):
@@ -78,7 +57,7 @@ class ArgHandle():
         self.check_args()
 
 
-# CMD loop, 可以查看各个串口的消息统计
+# CMD loop
 class MyCmd(Cmd):
     def __init__(self):
         Cmd.__init__(self)
@@ -124,49 +103,46 @@ def sys_init():
     LOG.info("Let's go!!!")
 
 
-# 系统清理函数，系统推出前调用
+# 系统清理函数，系统退出前调用
 def sys_cleanup():
     for th in thread_ids:
         th.close()
-
     LOG.info("Goodbye!!!")
 
 
-# 空调模拟程序入口
+# 主程序入口
 if __name__ == '__main__':
     # sys log init
     LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.DEBUG,
                    rlevel=logging.WARN)
     cprint = cprint(__name__)
 
+    # sys init
+    sys_init()
+
     # cmd arg init
     arg_handle = ArgHandle()
     arg_handle.run()
-
-    # sys init
-    sys_init()
 
     # multi thread
     global thread_list
     thread_list = []
 
-    # create clients
-    clients = []
-    for i in range(1, arg_handle.get_args('client_count') + 1):
-        LOG.yinfo('To create client: %d' % (i))
-        client = my_socket.MyClient((arg_handle.get_args('server_IP'), arg_handle.get_args(
-            'server_port')), LOG, Queue.Queue(), Queue.Queue(), heartbeat=15, debug=True, singlethread=False)
-        thread_list.append([client.run_forever])
-        thread_list.append([client.sendloop])
+
+    server = my_socket.MyServer(('', 8888), LOG, debug=True, singlethread=False)
+    thread_list.append([server.run_forever])
+    thread_list.append([server.sendloop])
 
     # run threads
     sys_proc()
-    #sys_join()
 
-    # cmd loop
-    signal.signal(signal.SIGINT, lambda signal, frame: cprint.notice_p('Exit SYSTEM: exit'))
-    my_cmd = MyCmd()
-    my_cmd.cmdloop()
+    if arg_handle.get_args('cmdloop'):
+        # cmd loop
+        signal.signal(signal.SIGINT, lambda signal, frame: cprint.notice_p('Exit SYSTEM: exit'))
+        my_cmd = MyCmd()
+        my_cmd.cmdloop()
+    else:
+        sys_join()
 
     # sys clean
     sys_cleanup()

@@ -24,13 +24,13 @@ from APIs.common_APIs import crc, protocol_data_printB
 class AirControl():
     def __init__(self, queue_in, queue_out, logger=None):
         self.msgst = defaultdict(lambda: {})
+
         self.queue_in = queue_in
         self.queue_out = queue_out
-
         self.left_data = ''
-        self.LOG = logger
         self.min_length = 10
         self.name = 'AirControl'
+        self.LOG = logger
 
     def protocol_handler(self, msg):
         self.LOG.yinfo('recv: ' + str(msg))

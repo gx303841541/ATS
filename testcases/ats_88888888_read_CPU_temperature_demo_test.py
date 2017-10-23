@@ -11,7 +11,7 @@ class Test(common_methods.CommMethod):
 
     def run(self):
 
-        server = my_socket.MyServer(('', 8888), self.LOG)
+        server = my_socket.MyServer(('', 8888), self.LOG, debug=True)
         server.run_forever()
         return 0
 
