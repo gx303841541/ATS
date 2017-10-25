@@ -17,10 +17,14 @@ import signal
 import subprocess
 import argparse
 import logging
-import ConfigParser
 from cmd import Cmd
 import decimal
-import Queue
+if sys.platform == 'linux':
+    import configparser as ConfigParser
+    import queue as Queue
+else:
+    import ConfigParser
+    import Queue
 
 from collections import defaultdict
 

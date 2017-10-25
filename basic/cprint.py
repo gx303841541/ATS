@@ -8,8 +8,11 @@ by Kobe Gong. 2017-8-21
 import datetime
 import sys
 import os
-import ctypes
 import threading
+if sys.platform == 'linux':
+    pass
+else:
+    import ctypes
 
 import APIs.common_APIs as common_APIs
 
@@ -56,93 +59,54 @@ STD_ERROR_HANDLE = -12
 
 cprint_lock = threading.Lock()
 
-
-class cprint:
-
+if sys.platform == 'linux':
+    pass
+else:
     std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
 
+
+class cprint:
     @common_APIs.need_add_lock(cprint_lock)
-    def set_colour(self, color, handle=std_out_handle):
-        bool = ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)
-        return bool
+    def set_colour(self, color):
+        if sys.platform == 'linux':
+            pass #print('\033[%sm' % self.style[color], end='')
+        else:
+            ctypes.windll.kernel32.SetConsoleTextAttribute(std_out_handle, color)
 
     def reset_colour(self):
-        self.set_colour(FOREGROUND_WHITE)
-        #self.set_colour(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
+        if sys.platform == 'linux':
+            pass#print('\033[0m', end='')
+        else:
+            self.set_colour(FOREGROUND_WHITE)
 
     def __init__(self, value=' '):
-
-        STYLE = {
-            'fore': {
-                'black': 30, 'red': 31, 'green': 32, 'yellow': 33,
-                'blue': 34, 'purple': 35, 'cyan': 36, 'white': 37,
-            },
-
-            'back': {
-                'black': 40, 'red': 41, 'green': 42, 'yellow': 43,
-                'blue': 44, 'purple': 45, 'cyan': 46, 'white': 47,
-            },
-
-            'mode': {
-                'default': 0, 'bold': 1, 'underline': 4, 'blink': 5, 'invert': 7,
-            },
-
-            'default': {
-                'end': 0,
-            }
+        self.style = {
+            FOREGROUND_BLUE: '34',
+            FOREGROUND_GREEN: '32',
+            FOREGROUND_YELLOW: '33',
+            FOREGROUND_PINK: '35',
+            FOREGROUND_RED: '31',
+            FOREGROUND_WHITE: '37',
         }
-        self.style = STYLE
         self.name = value
 
-    def common_p(self, string, mode='defult', fore='blue', back=''):
+    def common_p(self, string):
         self.set_colour(FOREGROUND_YELLOW)
         print(string)
         self.reset_colour()
         return
-        mode = '%s' % self.style['mode'][mode] if mode in self.style['mode'] else self.style['mode']['default']
-        fore = '%s' % self.style['fore'][fore] if fore in self.style['fore'] else ''
-        back = '%s' % self.style['back'][back] if back in self.style['back'] else ''
-        style = ';'.join([s for s in [mode, fore, back] if s])
-        style = '\033[%sm' % style
-        end = '\033[%sm' % self.style['default']['end']
 
-        print ("%s%s%s" % (style, string, end))
-
-    def get_common_p_str(self, string, mode='defult', fore='blue', back=''):
-        mode = '%s' % self.style['mode'][mode] if mode in self.style['mode'] else self.style['mode']['default']
-        fore = '%s' % self.style['fore'][fore] if fore in self.style['fore'] else ''
-        back = '%s' % self.style['back'][back] if back in self.style['back'] else ''
-        style = ';'.join([s for s in [mode, fore, back] if s])
-        style = '\033[%sm' % style
-        end = '\033[%sm' % self.style['default']['end']
-
-        return "%s%s%s" % (style, string, end)
-
-    def notice_p(self, string, mode='defult', fore='yellow', back=''):
+    def notice_p(self, string):
         self.set_colour(FOREGROUND_GREEN)
         print(string)
         self.reset_colour()
-        return
-        mode = '%s' % self.style['mode'][mode] if mode in self.style['mode'] else self.style['mode']['default']
-        fore = '%s' % self.style['fore'][fore] if fore in self.style['fore'] else ''
-        back = '%s' % self.style['back'][back] if back in self.style['back'] else ''
-        style = ';'.join([s for s in [mode, fore, back] if s])
-        style = '\033[%sm' % style
-        end = '\033[%sm' % self.style['default']['end']
 
-        print ("%s%s%s" % (style, string, end))
+    def yinfo_p(self, string):
+        self.set_colour(FOREGROUND_YELLOW)
+        print(string)
+        self.reset_colour()
 
-    def get_notice_p_str(self, string, mode='defult', fore='yellow', back=''):
-        mode = '%s' % self.style['mode'][mode] if mode in self.style['mode'] else self.style['mode']['default']
-        fore = '%s' % self.style['fore'][fore] if fore in self.style['fore'] else ''
-        back = '%s' % self.style['back'][back] if back in self.style['back'] else ''
-        style = ';'.join([s for s in [mode, fore, back] if s])
-        style = '\033[%sm' % style
-        end = '\033[%sm' % self.style['default']['end']
-
-        return "%s%s%s" % (style, string, end)
-
-    def debug_p(self, string, mode='defult', fore='green', back=''):
+    def debug_p(self, string):
         self.set_colour(FOREGROUND_BLUE)
         print(string)
         self.reset_colour()
@@ -161,75 +125,21 @@ class cprint:
         print ("%s%s [%s line:%s] %s%s" % (style, datetime.datetime.now(), repr(
             os.path.abspath(sys.argv[0])), f.f_lineno, self.name + string, end))
 
-    def get_debug_p_str(self, string, mode='defult', fore='green', back=''):
-        mode = '%s' % self.style['mode'][mode] if mode in self.style['mode'] else self.style['mode']['default']
-        fore = '%s' % self.style['fore'][fore] if fore in self.style['fore'] else ''
-        back = '%s' % self.style['back'][back] if back in self.style['back'] else ''
-        style = ';'.join([s for s in [mode, fore, back] if s])
-        style = '\033[%sm' % style
-        end = '\033[%sm' % self.style['default']['end']
-
-        return "%s%s%s" % (style, string, end)
-
-    def error_p(self, string, mode='defult', fore='red', back=''):
-        self.set_colour(FOREGROUND_RED)
-        print(string)
-        self.reset_colour()
-        return
-        mode = '%s' % self.style['mode'][mode] if mode in self.style['mode'] else self.style['mode']['default']
-        fore = '%s' % self.style['fore'][fore] if fore in self.style['fore'] else ''
-        back = '%s' % self.style['back'][back] if back in self.style['back'] else ''
-        style = ';'.join([s for s in [mode, fore, back] if s])
-        style = '\033[%sm' % style
-        end = '\033[%sm' % self.style['default']['end']
-
-        try:
-            raise Exception
-        except:
-            f = sys.exc_info()[2].tb_frame.f_back
-        print ("%s%s [%s line:%s] %s%s" % (style, datetime.datetime.now(), repr(
-            os.path.abspath(sys.argv[0])), f.f_lineno, self.name + string, end))
-
-    def get_error_p_str(self, string, mode='defult', fore='red', back=''):
-        mode = '%s' % self.style['mode'][mode] if mode in self.style['mode'] else self.style['mode']['default']
-        fore = '%s' % self.style['fore'][fore] if fore in self.style['fore'] else ''
-        back = '%s' % self.style['back'][back] if back in self.style['back'] else ''
-        style = ';'.join([s for s in [mode, fore, back] if s])
-        style = '\033[%sm' % style
-        end = '\033[%sm' % self.style['default']['end']
-
-        return "%s%s%s" % (style, string, end)
-
-    def warning_p(self, string, mode='blink', fore='red', back='black'):
+    def warn_p(self, string):
         self.set_colour(FOREGROUND_PINK)
         print(string)
         self.reset_colour()
-        return
-        mode = '%s' % self.style['mode'][mode] if mode in self.style['mode'] else self.style['mode']['default']
-        fore = '%s' % self.style['fore'][fore] if fore in self.style['fore'] else ''
-        back = '%s' % self.style['back'][back] if back in self.style['back'] else ''
-        style = ';'.join([s for s in [mode, fore, back] if s])
-        style = '\033[%sm' % style
-        end = '\033[%sm' % self.style['default']['end']
 
-        print ("%s%s%s" % (style, string, end))
-
-    def get_warning_p_str(self, string, mode='blink', fore='red', back='black'):
-        mode = '%s' % self.style['mode'][mode] if mode in self.style['mode'] else self.style['mode']['default']
-        fore = '%s' % self.style['fore'][fore] if fore in self.style['fore'] else ''
-        back = '%s' % self.style['back'][back] if back in self.style['back'] else ''
-        style = ';'.join([s for s in [mode, fore, back] if s])
-        style = '\033[%sm' % style
-        end = '\033[%sm' % self.style['default']['end']
-
-        return "%s%s%s" % (style, string, end)
+    def error_p(self, string):
+        self.set_colour(FOREGROUND_RED)
+        print(string)
+        self.reset_colour()
 
 
 if __name__ == '__main__':
-
     p = cprint('test')
     p.debug_p("this is ok?")
     p.error_p("this is ok?")
-    p.warning_p("this is ok?")
+    p.warn_p("this is ok?")
     p.notice_p("this is ok?")
     p.common_p("this is ok?")

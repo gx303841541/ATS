@@ -17,10 +17,14 @@ import signal
 import subprocess
 import argparse
 import logging
-import ConfigParser
 from cmd import Cmd
 import decimal
-import Queue
+if sys.platform == 'linux':
+    import configparser as ConfigParser
+    import queue as Queue
+else:
+    import ConfigParser
+    import Queue
 
 from collections import defaultdict
 
@@ -77,6 +81,7 @@ class MyCmd(Cmd):
 
     def do_exit(self, arg, opts=None):
         cprint.notice_p("Exit CLI, good luck!")
+        sys_cleanup()
         sys.exit()
 
 
@@ -88,7 +93,7 @@ def sys_proc(action="default"):
         process_ids.append(multiprocessing.Process(target=pr[0], args=pr[1:]))
 
     for pr in process_ids:
-        #pr.daemon = True
+        pr.daemon = True
         pr.start()
 
 
@@ -105,8 +110,8 @@ def sys_init():
 # 系统清理函数，系统退出前调用
 def sys_cleanup():
     for pr in process_ids:
-        pr.close()
-    LOG.info("Goodbye!!!")
+        pr.terminate()
+    LOG.warn("Goodbye!!!")
 
 
 # 主程序入口
@@ -128,11 +133,14 @@ if __name__ == '__main__':
     process_list = []
     queue = multiprocessing.Queue()
     e = multiprocessing.Event()
+    lock = multiprocessing.Lock()
+    manager = multiprocessing.Manager()
+    sum = manager.Value('tmp', 0)
 
 
-    server = my_socket.MyServer(('', 8888), LOG, debug=True, singlethread=False)
+    server = my_socket.MyServer(('', 8888), LOG, debug=True, singlethread=True)
     process_list.append([server.run_forever])
-    process_list.append([server.sendloop])
+    #process_list.append([server.sendloop])
 
     # run threads
     sys_proc()
@@ -145,6 +153,6 @@ if __name__ == '__main__':
     else:
         sys_join()
 
-    # sys clean
-    sys_cleanup()
-    sys.exit()
+        # sys clean
+        sys_cleanup()
+        sys.exit()

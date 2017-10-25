@@ -17,10 +17,14 @@ import signal
 import subprocess
 import argparse
 import logging
-import ConfigParser
 from cmd import Cmd
 import decimal
-import Queue
+if sys.platform == 'linux':
+    import configparser as ConfigParser
+    import queue as Queue
+else:
+    import ConfigParser
+    import Queue
 
 from collections import defaultdict
 
@@ -77,6 +81,7 @@ class MyCmd(Cmd):
 
     def do_exit(self, arg, opts=None):
         cprint.notice_p("Exit CLI, good luck!")
+        sys_cleanup()
         sys.exit()
 
 
@@ -105,8 +110,6 @@ def sys_init():
 
 # 系统清理函数，系统退出前调用
 def sys_cleanup():
-    for th in thread_ids:
-        th.close()
     LOG.info("Goodbye!!!")
 
 
@@ -144,6 +147,6 @@ if __name__ == '__main__':
     else:
         sys_join()
 
-    # sys clean
-    sys_cleanup()
-    sys.exit()
+        # sys clean
+        sys_cleanup()
+        sys.exit()

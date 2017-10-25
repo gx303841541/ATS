@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""multi process pool app demo
+"""thread pool app demo
 by Kobe Gong. 2017-10-23
 """
 
@@ -11,16 +11,20 @@ import time
 import os
 import shutil
 import datetime
-import threading
+import threadpool
 import random
 import signal
 import subprocess
 import argparse
 import logging
-import ConfigParser
 from cmd import Cmd
 import decimal
-import Queue
+if sys.platform == 'linux':
+    import configparser as ConfigParser
+    import queue as Queue
+else:
+    import ConfigParser
+    import Queue
 
 from collections import defaultdict
 
@@ -77,25 +81,19 @@ class MyCmd(Cmd):
 
     def do_exit(self, arg, opts=None):
         cprint.notice_p("Exit CLI, good luck!")
+        sys_cleanup()
         sys.exit()
 
 
 # 系统调度
-def sys_proc(action="default"):
-    global thread_ids
-    thread_ids = []
-    for th in thread_list:
-        thread_ids.append(threading.Thread(target=th[0], args=th[1:]))
-
-    for th in thread_ids:
-        th.setDaemon(True)
-        th.start()
-        # time.sleep(0.1)
+def sys_proc(thread_num=1):
+    global pool
+    pool = threadpool.ThreadPool(thread_num)
+    [pool.putRequest(req) for req in thread_list]
 
 
 def sys_join():
-    for th in thread_ids:
-        th.join()
+    pool.wait()
 
 
 # 系统初始化函数，在所有模块开始前调用
@@ -105,8 +103,6 @@ def sys_init():
 
 # 系统清理函数，系统退出前调用
 def sys_cleanup():
-    for th in thread_ids:
-        th.close()
     LOG.info("Goodbye!!!")
 
 
@@ -127,14 +123,12 @@ if __name__ == '__main__':
     # multi thread
     global thread_list
     thread_list = []
-
-
     server = my_socket.MyServer(('', 8888), LOG, debug=True, singlethread=False)
-    thread_list.append([server.run_forever])
-    thread_list.append([server.sendloop])
+    thread_list += threadpool.makeRequests(server.run_forever, range(1))
+    thread_list += threadpool.makeRequests(server.sendloop, range(1))
 
     # run threads
-    sys_proc()
+    sys_proc(os.cpu_count() * 4)
 
     if arg_handle.get_args('cmdloop'):
         # cmd loop
@@ -144,6 +138,6 @@ if __name__ == '__main__':
     else:
         sys_join()
 
-    # sys clean
-    sys_cleanup()
-    sys.exit()
+        # sys clean
+        sys_cleanup()
+        sys.exit()

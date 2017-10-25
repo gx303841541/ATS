@@ -12,9 +12,13 @@ import os
 import random
 import datetime
 import socket
-import Queue
 import select
 import threading
+if sys.platform == 'linux':
+    import queue as Queue
+else:
+    import Queue
+
 from basic.log_tool import MyLogger
 from APIs.common_APIs import protocol_data_printB
 
@@ -36,7 +40,7 @@ class MyServer:
         self.inputs = [server]
         self.conn_to_addr = {}
 
-    def run_forever(self):
+    def run_forever(self, *arg):
         BUFF_SIZE = 1024
         timeout = 1
 
@@ -72,7 +76,7 @@ class MyServer:
                                 self.clients[self.conn_to_addr[conn]]['queue_in'].put(data)
                                 self.clients[self.conn_to_addr[conn]]['queue_out'].put('1234567890')
                                 if self.debug:
-                                    self.LOG.info("Get data from " + self.conn_to_addr[conn][0] + ": " + data)
+                                    self.LOG.info("Get data from " + self.conn_to_addr[conn][0] + ": " + data.decode('utf-8'))
                             else:
                                 # Interpret empty result as closed connection
                                 self.LOG.error(
@@ -88,7 +92,6 @@ class MyServer:
                             self.inputs.remove(conn)
                             del self.clients[self.conn_to_addr[conn]]
                             del self.conn_to_addr[conn]
-                            pass
 
                 if self.singlethread:
                     self.send_once()
@@ -98,13 +101,12 @@ class MyServer:
             for client in self.clients:
                 self.clients[client]['conn'].close()
             self.server.close()
-            sys.exit(0)
 
         finally:
             self.LOG.info("socket server end!")
-            th.join()
+            sys.exit(0)
 
-    def sendloop(self):
+    def sendloop(self, *arg):
         while True:
             self.send_once()
 
@@ -115,19 +117,16 @@ class MyServer:
                     pass
                 else:
                     data = self.clients[self.conn_to_addr[client]]['queue_out'].get()
-                    try:
-                        client.send(data)
-                        if self.debug:
-                            self.LOG.yinfo("Send data to " + self.conn_to_addr[client][0] + ": " + data)
-                    except:
-                        self.LOG.error(self.conn_to_addr[client][0] + ' closed!')
-                        self.clients[self.conn_to_addr[client]]['conn'].close()
-                        self.inputs.remove(client)
-                        del self.clients[self.conn_to_addr[client]]
-                        del self.conn_to_addr[client]
+                    client.send(data.encode('utf-8'))
+                    if self.debug:
+                        self.LOG.yinfo("Send data to " + self.conn_to_addr[client][0] + ": " + data)
 
         except Exception as e:
-            self.LOG.warn(str(e))
+            self.LOG.error(self.conn_to_addr[client][0] + ' closed! [%s]' % (str(e)))
+            self.clients[self.conn_to_addr[client]]['conn'].close()
+            self.inputs.remove(client)
+            del self.clients[self.conn_to_addr[client]]
+            del self.conn_to_addr[client]
 
 
 class MyClient:
@@ -145,8 +144,8 @@ class MyClient:
         self.debug = debug
         self.singlethread = singlethread
 
-    def run_forever(self):
-        BUFF_SIZE = 1024
+    def run_forever(self, *arg):
+        BUFF_SIZE = 512
         timeout = 1
 
         try:
@@ -167,8 +166,8 @@ class MyClient:
                         self.connected = True
                         break
                     except:
-                        self.LOG.warn("Connect to server failed, wait 10s...")
-                        time.sleep(10)
+                        self.LOG.warn("Connect to server failed, wait 1s...")
+                        time.sleep(1)
 
                 readable, writable, exceptional = select.select(
                     self.inputs, [], self.inputs, timeout)
@@ -202,16 +201,11 @@ class MyClient:
             self.client.close()
             self.LOG.warn("Oh, you killed me...")
 
-        except Exception as e:
-            self.client.close()
-            self.connected = False
-            self.LOG.error("server socket closed. %s" % (e))
-
         finally:
             self.LOG.info("End!")
             sys.exit(0)
 
-    def sendloop(self):
+    def sendloop(self, *arg):
         while True:
             self.send_once()
 
@@ -230,7 +224,10 @@ class MyClient:
                 data = self.queue['queue_out'].get()
                 if self.debug:
                     self.LOG.yinfo(protocol_data_printB(data, title="client send date:" % (self)))
-                self.client.send(data)
+                self.client.send(data.encode('utf-8'))
 
         except Exception as e:
-            self.LOG.warn(str(e))
+            self.LOG.error("send data fail, Server maybe has closed![%s]" % (str(e)))
+            self.client.close()
+            self.inputs.remove(self.client)
+            self.connected = False

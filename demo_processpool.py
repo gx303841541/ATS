@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""multi process pool app demo
+"""process pool app demo
 by Kobe Gong. 2017-10-23
 """
 
@@ -11,16 +11,20 @@ import time
 import os
 import shutil
 import datetime
-import threading
+import multiprocessing
 import random
 import signal
 import subprocess
 import argparse
 import logging
-import ConfigParser
 from cmd import Cmd
 import decimal
-import Queue
+if sys.platform == 'linux':
+    import configparser as ConfigParser
+    import queue as Queue
+else:
+    import ConfigParser
+    import Queue
 
 from collections import defaultdict
 
@@ -77,25 +81,22 @@ class MyCmd(Cmd):
 
     def do_exit(self, arg, opts=None):
         cprint.notice_p("Exit CLI, good luck!")
+        sys_cleanup()
         sys.exit()
 
 
 # 系统调度
-def sys_proc(action="default"):
-    global thread_ids
-    thread_ids = []
-    for th in thread_list:
-        thread_ids.append(threading.Thread(target=th[0], args=th[1:]))
+def sys_proc(process_num=1):
+    global pool
+    pool = multiprocessing.Pool(process_num)
 
-    for th in thread_ids:
-        th.setDaemon(True)
-        th.start()
-        # time.sleep(0.1)
+    for pr in process_list:
+        pool.apply_async(func=pr[0], args=pr[1:])
 
 
 def sys_join():
-    for th in thread_ids:
-        th.join()
+    pool.close()
+    pool.join()
 
 
 # 系统初始化函数，在所有模块开始前调用
@@ -105,8 +106,6 @@ def sys_init():
 
 # 系统清理函数，系统退出前调用
 def sys_cleanup():
-    for th in thread_ids:
-        th.close()
     LOG.info("Goodbye!!!")
 
 
@@ -125,16 +124,16 @@ if __name__ == '__main__':
     arg_handle.run()
 
     # multi thread
-    global thread_list
-    thread_list = []
+    global process_list
+    process_list = []
 
 
-    server = my_socket.MyServer(('', 8888), LOG, debug=True, singlethread=False)
-    thread_list.append([server.run_forever])
-    thread_list.append([server.sendloop])
+    server = my_socket.MyServer(('', 8888), LOG, debug=True, singlethread=True)
+    process_list.append([server.run_forever, LOG])
+    #process_list.append([server.sendloop])
 
     # run threads
-    sys_proc()
+    sys_proc(os.cpu_count() * 4)
 
     if arg_handle.get_args('cmdloop'):
         # cmd loop
@@ -144,6 +143,6 @@ if __name__ == '__main__':
     else:
         sys_join()
 
-    # sys clean
-    sys_cleanup()
-    sys.exit()
+        # sys clean
+        sys_cleanup()
+        sys.exit()

@@ -9,8 +9,14 @@ import logging
 import sys
 import os
 from logging.handlers import RotatingFileHandler
-from cprint import cprint
 import traceback
+if sys.platform == 'linux':
+    import coloredlogs
+    coloredlogs.DEFAULT_DATE_FORMAT = ''
+    coloredlogs.DEFAULT_LOG_FORMAT = '[%(asctime)s] [%(levelname)s] %(message)s'
+
+from .cprint import cprint
+
 
 
 # Windows CMD命令行 字体颜色定义 text colors
@@ -52,6 +58,8 @@ BACKGROUND_WHITE = 0xf0  # white.
 
 class MyLogger:
     def __init__(self, path, clevel=logging.DEBUG, cenable=True, flevel=logging.DEBUG, fenable=True, rlevel=logging.DEBUG, renable=True):
+        if sys.platform == 'linux':
+            coloredlogs.install(level=clevel)
 
         self.cprint = cprint()
         self.p = logging.getLogger(path)
@@ -60,7 +68,9 @@ class MyLogger:
         fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
 
         # 设置CMD日志
-        if cenable == True:
+        if cenable == True and sys.platform == 'linux':
+            pass
+        else:
             sh = logging.StreamHandler()
             sh.setFormatter(fmt)
             sh.setLevel(clevel)
@@ -86,7 +96,7 @@ class MyLogger:
         msg_prefix = '[' + \
             os.path.basename(s[-2][0]) + ': ' + str(s[-2][1]) + '] '
 
-        self.cprint.set_colour(FOREGROUND_BLUE)
+        self.cprint.set_colour(FOREGROUND_BLUE)       
         self.p.debug(msg_prefix + message)
         self.cprint.reset_colour()
 
@@ -95,7 +105,7 @@ class MyLogger:
         msg_prefix = '[' + \
             os.path.basename(s[-2][0]) + ': ' + str(s[-2][1]) + '] '
 
-        self.cprint.set_colour(FOREGROUND_GREEN)
+        self.cprint.set_colour(FOREGROUND_GREEN)     
         self.p.info(msg_prefix + message)
         self.cprint.reset_colour()
 
@@ -113,7 +123,7 @@ class MyLogger:
         msg_prefix = '[' + \
             os.path.basename(s[-2][0]) + ': ' + str(s[-2][1]) + '] '
 
-        self.cprint.set_colour(FOREGROUND_PINK)
+        self.cprint.set_colour(FOREGROUND_PINK)        
         self.p.warn(msg_prefix + message)
         self.cprint.reset_colour()
 
@@ -122,7 +132,7 @@ class MyLogger:
         msg_prefix = '[' + \
             os.path.basename(s[-2][0]) + ': ' + str(s[-2][1]) + '] '
 
-        self.cprint.set_colour(FOREGROUND_RED)
+        self.cprint.set_colour(FOREGROUND_RED)      
         self.p.error(msg_prefix + message)
         self.cprint.reset_colour()
 
@@ -142,3 +152,4 @@ if __name__ == '__main__':
     mylog.info("11111")
     mylog.warn("11111")
     mylog.error("11111")
+    mylog.cprint.error_p('xxoo')
