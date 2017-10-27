@@ -89,9 +89,7 @@ class MyCmd(Cmd):
 def sys_proc(process_num=1):
     global pool
     pool = multiprocessing.Pool(process_num)
-
-    for pr in process_list:
-        pool.apply_async(func=pr[0], args=pr[1:])
+    [pool.apply_async(func=pr[0], args=pr[1:]) for pr in process_list]
 
 
 def sys_join():

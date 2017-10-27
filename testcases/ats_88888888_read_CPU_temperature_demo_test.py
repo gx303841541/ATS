@@ -15,6 +15,7 @@ class Test(common_methods.CommMethod):
         server.run_forever()
         return 0
 
+
         self.telnet.connect()
 
         for i in range(10):
@@ -29,7 +30,7 @@ class Test(common_methods.CommMethod):
                     self.LOG.error("wifi0 temperature too high: [%s]" % temperature0[0])
                     return 1
             else:
-                self.LOG.error("wifi0 read fail![%s]" % wifi0)
+                self.LOG.error("wifi0 read fail![%s]" % wifi0) 
                 return 1
 
 
@@ -44,14 +45,8 @@ class Test(common_methods.CommMethod):
                     self.LOG.error("wifi1 temperature too high: [%s]" % temperature1[0])
                     return 1
             else:
-                self.LOG.error("wifi1 read fail![%s]" % wifi1)
+                self.LOG.error("wifi1 read fail![%s]" % wifi1) 
                 return 1
 
             time.sleep(1)
         return 0
-
-
-if __name__ == '__main__':
-    c = Test()
-    #c.run()
-    c.LOG.warn('just for test!')

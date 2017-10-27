@@ -35,8 +35,10 @@ class AirControl():
     def protocol_handler(self, msg):
         self.LOG.yinfo('recv: ' + str(msg))
         json_msg=json.loads(msg)
-        if ((not 'content' in json_msg) or (not 'req_id' in json_msg['content'])):
-            return
+        if ((not 'content' in json_msg)
+            or (not 'req_id' in json_msg['content']) 
+            or (json_msg['content']['method'] == 'mdp_msg')):
+            return 'No_need_send'
 
         rece_time = datetime.datetime.now()
         time_diff = (rece_time - self.msgst[json_msg['content']['req_id']]['send_time'])
@@ -46,7 +48,7 @@ class AirControl():
         if(self.msgst[json_msg['content']['req_id']]['delaytime'] >= 1000):
             self.LOG.error("msg intervavl for %s is too long: %s\n" % (json_msg['content']['req_id'], self.msgst[json_msg['content']['req_id']]['delaytime']))
         else:
-            self.LOG.debug('msg intervavl for %s is %f\n' % (json_msg['content']['req_id'], self.msgst[json_msg['content']['req_id']]['delaytime']))
+            self.LOG.warn('msg intervavl for %s is %f\n' % (json_msg['content']['req_id'], self.msgst[json_msg['content']['req_id']]['delaytime']))
             return 'No_need_send'
 
     def protocol_data_wash(self, data):
