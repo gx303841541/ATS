@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import os, sys, re, time
+import os
+import sys
+import re
+import time
 from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
 import my_socket.my_socket as my_socket
@@ -10,11 +13,10 @@ import my_socket.my_socket as my_socket
 class Test(common_methods.CommMethod):
 
     def run(self):
-
+        self.case_pass('let us go!')
+        time.sleep(10000)
         server = my_socket.MyServer(('', 8888), self.LOG, debug=True)
         server.run_forever()
-        return 0
-
 
         self.telnet.connect()
 
@@ -27,12 +29,10 @@ class Test(common_methods.CommMethod):
                 if int(temperature0[0]) < 80:
                     pass
                 else:
-                    self.LOG.error("wifi0 temperature too high: [%s]" % temperature0[0])
-                    return 1
+                    return self.case_fail(
+                        "wifi0 temperature too high: [%s]" % temperature0[0])
             else:
-                self.LOG.error("wifi0 read fail![%s]" % wifi0) 
-                return 1
-
+                return self.case_fail("wifi0 read fail![%s]" % wifi0)
 
             wifi1 = self.telnet.send("cat /sys/class/net/wifi1/thermal/temp")
             self.LOG.debug(wifi1)
@@ -42,11 +42,10 @@ class Test(common_methods.CommMethod):
                 if int(temperature1[0]) < 80:
                     pass
                 else:
-                    self.LOG.error("wifi1 temperature too high: [%s]" % temperature1[0])
-                    return 1
+                    return self.case_fail(
+                        "wifi1 temperature too high: [%s]" % temperature1[0])
             else:
-                self.LOG.error("wifi1 read fail![%s]" % wifi1) 
-                return 1
+                return self.case_fail("wifi1 read fail![%s]" % wifi1)
 
             time.sleep(1)
-        return 0
+        self.case_pass()

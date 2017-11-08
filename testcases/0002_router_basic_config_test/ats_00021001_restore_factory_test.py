@@ -24,16 +24,14 @@ class Test(common_methods.CommMethod):
         else:
             self.LOG.error("serial connect fail, please check serial connection!")
             return 1
-        '''         
+        '''
 
         raw_input("请按住路由器恢复出厂设置按键5s, 然后按任意键继续".decode('utf-8').encode(sys.getfilesystemencoding()))
         time.sleep(10)
 
         ack = self.http.isRouterSetupDone()
         if ack['result']['status'] == 0:
-            self.LOG.debug(repr(ack))
-            return 0 
+            return self.case_pass(repr(ack))
 
         else:
-            self.LOG.error('result->status not 0: ' + repr(ack))
-            return 1
+            return self.case_fail('result->status not 0: ' + repr(ack))

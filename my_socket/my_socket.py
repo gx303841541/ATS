@@ -22,6 +22,8 @@ else:
 from basic.log_tool import MyLogger
 from APIs.common_APIs import protocol_data_printB
 
+BUFF_SIZE = 512
+
 class MyServer:
     def __init__(self, addr, logger, debug=False, singlethread=True):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -130,7 +132,7 @@ class MyServer:
 
 
 class MyClient:
-    def __init__(self, addr, logger, queue_in, queue_out, heartbeat=0, heartbeat_data='1\n', debug=False, singlethread=True):
+    def __init__(self, addr, logger, queue_in, queue_out, heartbeat=0, heartbeat_data='1\n', debug=False, singlethread=True, printB=True):
         self.queue = {
             'queue_in': queue_in,
             'queue_out': queue_out,
@@ -143,77 +145,76 @@ class MyClient:
         self.heartbeat_data = heartbeat_data
         self.debug = debug
         self.singlethread = singlethread
+        self.printB = printB
 
     def run_forever(self, *arg):
-        BUFF_SIZE = 512
-        timeout = 1
-
-        try:
-            while True:
-                # wait for connection setup
-                while self.connected == False:
-                    self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    self.inputs = [self.client]
-                    try:
-                        self.client.connect(self.addr)
-                        self.LOG.info("Connection setup suceess!")
-                        while not self.queue['queue_in'].empty():
-                            self.queue['queue_in'].get_nowait()
-
-                        while not self.queue['queue_out'].empty():
-                            self.queue['queue_out'].get_nowait()
-
-                        self.connected = True
-                        break
-                    except:
-                        self.LOG.warn("Connect to server failed, wait 1s...")
-                        time.sleep(1)
-
-                readable, writable, exceptional = select.select(
-                    self.inputs, [], self.inputs, timeout)
-
-                # When timeout reached , select return three empty lists
-                if not (readable):
+        while True:
+            # wait for connection setup
+            while self.connected == False:
+                if self.connect():
                     pass
                 else:
-                    try:
-                        data = self.client.recv(BUFF_SIZE)
-                        if data:
-                            self.queue['queue_in'].put(data)
-                            if self.debug:
-                                self.LOG.info("client get data: %s" % (data))
-                        else:
-                            self.LOG.error("Server maybe has closed!")
-                            self.client.close()
-                            self.inputs.remove(self.client)
-                            self.connected = False
+                    time.sleep(1)
 
-                    except socket.error:
-                        self.LOG.error("socket error, don't know why.")
-                        self.client.close()
-                        self.inputs.remove(self.client)
-                        self.connected = False
+            self.recv_once()
 
-                if self.connected == True and self.singlethread:
-                    self.send_once()
+            if self.connected == True and self.singlethread:
+                self.send_once()
 
-        except KeyboardInterrupt:
-            self.client.close()
-            self.LOG.warn("Oh, you killed me...")
+    def connect(self):
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.inputs = [self.client]
+        try:
+            self.client.connect(self.addr)
+            self.LOG.info("Connection setup suceess!")
+            while not self.queue['queue_in'].empty():
+                self.queue['queue_in'].get_nowait()
 
-        finally:
-            self.LOG.info("End!")
-            sys.exit(0)
+            while not self.queue['queue_out'].empty():
+                self.queue['queue_out'].get_nowait()
+
+            self.connected = True
+            return 1
+        except:
+            self.LOG.warn("Connect to server failed, wait 1s...")
+            return 0
+
+    def recv_once(self):
+        timeout = 1
+        readable, writable, exceptional = select.select(
+            self.inputs, [], self.inputs, timeout)
+
+        # When timeout reached , select return three empty lists
+        if not (readable):
+            pass
+        else:
+            try:
+                data = self.client.recv(BUFF_SIZE)
+                if data:
+                    self.queue['queue_in'].put(data)
+                    if self.debug:
+                        self.LOG.info("client get data: %s" % (data))
+                else:
+                    self.LOG.error("Server maybe has closed!")
+                    self.client.close()
+                    self.inputs.remove(self.client)
+                    self.connected = False
+
+            except socket.error:
+                self.LOG.error("socket error, don't know why.")
+                self.client.close()
+                self.inputs.remove(self.client)
+                self.connected = False
 
     def sendloop(self, *arg):
         while True:
-            self.send_once()
+            if self.connected == True:
+                self.send_once()
+            else:
+                pass
 
     def send_once(self):
         try:
-            while self.connected != True:
-                pass
-
             if self.queue['queue_out'].empty():
                 if self.heartbeat:
                     time.sleep(self.heartbeat)
@@ -223,7 +224,10 @@ class MyClient:
             else:
                 data = self.queue['queue_out'].get()
                 if self.debug:
-                    self.LOG.yinfo(protocol_data_printB(data, title="client send date:" % (self)))
+                    if self.printB:
+                        self.LOG.yinfo(protocol_data_printB(data, title="client send date:" % (self)))
+                    else:
+                        self.LOG.yinfo("client send data: %s" % (data))
                 self.client.send(data.encode('utf-8'))
 
         except Exception as e:

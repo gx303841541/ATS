@@ -30,8 +30,14 @@ class TestCase(object):
         pass
 
     def teardown(self):
-        # test clean up!
-        pass
+        if self.serial.is_open():
+            self.serial.close()
+
+        if self.ssh.is_open():
+            self.ssh.close()
+
+        if self.telnet.is_open():
+            self.telnet.close()
 
     @istest
     @with_setup(setup, teardown)
@@ -59,11 +65,12 @@ class TestCase(object):
         pass
 
     def common_clean_up(self):
-        if self.serial.is_open():
-            self.serial.close()
+        pass
 
-        if self.ssh.is_open():
-            self.ssh.close()
+    def case_pass(self, success_info='pass'):
+        self.LOG.info(success_info)
+        return 0
 
-        if self.telnet.is_open():
-            self.telnet.close()
+    def case_fail(self, error_info='fail'):
+        self.LOG.error(error_info)
+        return 1

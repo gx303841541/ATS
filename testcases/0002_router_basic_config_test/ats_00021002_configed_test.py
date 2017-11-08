@@ -19,16 +19,11 @@ class Test(common_methods.CommMethod):
         if self.serial.open() == 0:
             self.serial.write('echo -e "admin\nadmin" | passwd root')
         else:
-            self.LOG.error("serial connect fail, please check serial connection!")
-            return 1
-        
-
+            return self.case_fail("serial connect fail, please check serial connection!")
 
         ack = self.http.isRouterSetupDone()
         if ack['result']['status'] == 1:
-            self.LOG.debug(repr(ack))
-            return 0 
+            return self.case_pass(repr(ack))
 
         else:
-            self.LOG.error('result->status not 1: ' + repr(ack))
-            return 1
+            return self.case_fail('result->status not 1: ' + repr(ack))

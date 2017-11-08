@@ -85,13 +85,21 @@ class MySsh():
             out = stdout.read()
 
         except Exception as er:
-            self.LOG.error('Send %s wrong: %s\n[[%s]]' % (cmd, err, str(er)))
+            self.LOG.error('Send %s wrong: %s' % (cmd, str(er)))
             return None
-        return out
+        return out + err
 
 
     def get(self, timeout=5, prompt=None):
-        pass
+        try:
+            stdin, stdout, stderr = self.conn.exec_command('\n')
+            err = stderr.read()
+            out = stdout.read()
+
+        except Exception as er:
+            self.LOG.error('get output wrong: %s\n[%s]' % (err, str(er)))
+            return None
+        return out + err
 
 
     def close(self):
@@ -130,8 +138,8 @@ class MyTelnet():
 
 
     def send(self, cmd, timeout=5):
+        self.LOG.debug('To send cmd: %s' % (cmd))
         try:
-            self.LOG.debug('To send cmd: %s' % (cmd))
             cmd = cmd.encode('ascii')
             x = self.conn.write(cmd +'\n')
             time.sleep(1)

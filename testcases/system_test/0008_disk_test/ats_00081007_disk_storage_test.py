@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import time
-import telnetlib
+import re
 import os
 import sys
-sys.path.append(os.path.abspath('.'))
+
 from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
 
@@ -13,33 +13,26 @@ import APIs.common_methods as common_methods
 class Test(common_methods.CommMethod):
 
     def run(self):
-        return main()
+        self.serial.open()
+        self.ssh.connect()
+        self.ssh.send('mkdir /udisk/user/testfiles')
+        self.serial.send('cd /udisk/user/testfiles')
+        for i in range(100):
+            self.serial.send('mkdir testdir_%s' % (i))
+            self.serial.send('cd testdir_%s' % (i))
+            for j in range(1000):
+                self.ssh.send('dd if=/dev/zero of=testfile_%s_%s count=1 bs=1k' % (i, j))
 
+        cp_result = self.ssh.send("cp -R /udisk/user/testfiles /udisk/usb1")
+        ls_result = self.ssh.send('ls -lh /udisk/usb1')
+        if re.search(r'testfiles', ls_result, re.M):
+            self.LOG.debug('cp -R /udisk/user/testfiles /udisk/usb1 success!\n' + cp_result)
+            return self.case_pass()
+        else:
+            self.LOG.error('cp -R /udisk/user/testfiles /udisk/usb1 failed![%s]' % ls_result)
+            time.sleep(90)
+            return self.case_fail()
 
-        
-Host = '192.168.10.1' 
-finish = ':/#'
-#执行命令
-def execmd(comm):
-        #print comm
-        comm=comm.encode('ascii')
-        tn = telnetlib.Telnet(Host)
-        tn.open(Host)
-        time.sleep(5)
-        rd=tn.read_very_eager()
-        x=tn.write(comm +'\n')
-        time.sleep(3)
-        rd=tn.read_very_eager()
-        return rd
-#copy文件    
-def copyfile():
-    try:
-        execmd("cp -R //udisk//user//testfiles //udisk//usb1")
-        return 0
-    except Exception,e:
-        return 1
-    
-def main():
-    return copyfile()
-    
-    
+    def common_clean_up(self):
+        self.ssh.send("rm -rf /udisk/user/testfiles")
+        self.ssh.send("rm -rf /udisk/usb1/testfiles")

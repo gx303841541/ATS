@@ -36,7 +36,7 @@ class AirControl():
         self.LOG.yinfo('recv: ' + str(msg))
         json_msg=json.loads(msg)
         if ((not 'content' in json_msg)
-            or (not 'req_id' in json_msg['content']) 
+            or (not 'req_id' in json_msg['content'])
             or (json_msg['content']['method'] == 'mdp_msg')):
             return 'No_need_send'
 

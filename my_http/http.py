@@ -14,9 +14,8 @@ import sys
 
 
 class Http():
-    def __init__(self, router_url='http://192.168.10.1/cgi-bin/test1', logger=sys.stdout.write):
+    def __init__(self, router_url='http://192.168.10.1/cgi-bin/test1'):
         self.router_url = router_url
-        self.logger = logger
 
     #路由器当前上网方式
     def getCurrentWanConfig(self):
@@ -178,10 +177,26 @@ class Http():
     def httpsend(self, jsonstr):
         headers = {}
         req = requests.post(self.router_url, headers=headers, data=jsonstr)
-        return json.loads(req.text, encoding="gbk")
+        if req:
+            return json.loads(req.text, encoding="gbk")
+        else:
+            print('Timeout!')
 
 
 if __name__ == '__main__':
     a = Http()
-    s = a.isRouterSetupDone()
-    print repr(s)
+    msg_on = {
+        "method": "getCurrentWanConfig",
+        "timestamp": 1490229730,
+        "req_id": 123,
+        "params": {
+            "family_id": 1,
+            "user_id": 123
+        }
+    }
+
+    s = a.send(msg_on)
+    if s:
+        print repr(s)
+    else:
+        print ('Fuck')

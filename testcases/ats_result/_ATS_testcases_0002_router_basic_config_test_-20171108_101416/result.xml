@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><testsuite name="nosetests" tests="2" errors="1" failures="0" skip="0"><testcase classname="ats_00021001_restore_factory_test.Test" name="test" time="0.005"><error type="exceptions.UnicodeEncodeError" message="'ascii' codec can't encode characters in position 15-28: ordinal not in range(128)"><![CDATA[Traceback (most recent call last):
+  File "C:\Python27\lib\unittest\case.py", line 318, in run
+    testMethod()
+  File "C:\Python27\lib\site-packages\nose-1.3.7-py2.7.egg\nose\case.py", line 197, in runTest
+    self.test(*self.arg)
+  File "C:\ATS\framework\framework.py", line 52, in test
+    traceback.print_exc()
+  File "C:\Python27\lib\traceback.py", line 232, in print_exc
+    print_exception(etype, value, tb, limit, file)
+  File "C:\Python27\lib\traceback.py", line 125, in print_exception
+    print_tb(tb, limit, file)
+  File "C:\Python27\lib\traceback.py", line 70, in print_tb
+    if line: _print(file, '    ' + line.strip())
+  File "C:\Python27\lib\traceback.py", line 13, in _print
+    file.write(str+terminator)
+  File "C:\Python27\lib\site-packages\nose-1.3.7-py2.7.egg\nose\plugins\xunit.py", line 129, in write
+    s.write(data)
+  File "C:\Python27\lib\site-packages\nose-1.3.7-py2.7.egg\nose\plugins\xunit.py", line 129, in write
+    s.write(data)
+  File "C:\Python27\lib\site-packages\nose-1.3.7-py2.7.egg\nose\plugins\xunit.py", line 129, in write
+    s.write(data)
+UnicodeEncodeError: 'ascii' codec can't encode characters in position 15-28: ordinal not in range(128)
+]]></error><system-out><![CDATA[�밴ס·�����ָ��������ð���5s, Ȼ�����������]]></system-out><system-err><![CDATA[Traceback (most recent call last):
+  File "C:\ATS\framework\framework.py", line 50, in test
+    result = self.run()
+  File "C:\ATS\testcases\0002_router_basic_config_test\ats_00021001_restore_factory_test.py", line 29, in run
+    raw_input("请按住路由器恢复出厂设置按键5s, 然后按任意键继续".decode('utf-8').encode(sys.getfilesystemencoding()))
+]]></system-err></testcase><testcase classname="ats_00021002_configed_test.Test" name="test" time="0.361"></testcase></testsuite>

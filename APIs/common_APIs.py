@@ -32,13 +32,6 @@ def get_output(*popenargs, **kwargs):
     return output
 
 
-def pipe_output(*popenargs, **kwargs):
-    process = Popen(*popenargs, stdout=PIPE, stderr=PIPE, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    return output
-
-
 def full_output(*popenargs, **kwargs):
     process = Popen(*popenargs, **kwargs)
     output, unused_err = process.communicate()

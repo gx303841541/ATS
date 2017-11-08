@@ -53,7 +53,7 @@ class MySerial():
 
         try:
             self.com = serial.Serial(
-                self.port, baudrate=self.baudrate, timeout=100)
+                self.port, baudrate=self.baudrate, timeout=10)
             if self.is_open():
                 self.LOG.debug("port: %s open success" % (self.port))
             else:
@@ -100,6 +100,9 @@ class MySerial():
 
     def readable(self):
         return self.com.readable()
+
+    def send(self, data):
+        return self.write(data)
 
     def write(self, data):
         return self.com.write(data + '\r')

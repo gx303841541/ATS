@@ -19,6 +19,7 @@ import argparse
 import logging
 from cmd import Cmd
 import decimal
+import json
 if sys.platform == 'linux':
     import configparser as ConfigParser
     import queue as Queue
@@ -67,6 +68,23 @@ class ArgHandle():
             default=1,
             type=int,
             help='Specify how many socket client will be create',
+        )
+
+        parser.add_argument(
+            '-t', '--time-interval',
+            dest='time_interval',
+            action='store',
+            default=200,
+            type=int,
+            help='time intervavl for msg send to router',
+        )
+
+        parser.add_argument(
+            '-u', '--device-uuid',
+            dest='device_uuid',
+            action='store',
+            default='000e83c6c10000000000c85b765caf43',
+            help='Specify device uuid',
         )
         return parser
 
@@ -136,6 +154,29 @@ def sys_cleanup():
     LOG.info("Goodbye!!!")
 
 
+def getMsgup(req_id, uuid):
+    msg_temp_up = {
+        "uuid": "111",
+        "encry": "false",
+        "content": {
+            "method": "dm_set",
+            "req_id": 113468,
+            "token": "",
+            "nodeid": "airconditioner.main.temperature",
+            "params": {
+                "device_uuid": "",
+                "attribute": {
+                    "temperature": 26
+                }
+            }
+        }
+    }
+    msg_temp_up['content']['req_id'] = req_id
+    msg_temp_up['content']['params']['device_uuid'] = uuid
+    return str(json.dumps(msg_temp_up)) + '\n'
+
+
+
 # 空调模拟程序入口
 if __name__ == '__main__':
     # sys log init
@@ -159,16 +200,17 @@ if __name__ == '__main__':
     for i in range(1, arg_handle.get_args('client_count') + 1):
         LOG.yinfo('To create client: %d' % (i))
         client = my_socket.MyClient((arg_handle.get_args('server_IP'), arg_handle.get_args(
-            'server_port')), LOG, Queue.Queue(), Queue.Queue(), heartbeat=15, debug=True, singlethread=False)
+            'server_port')), LOG, Queue.Queue(), Queue.Queue(), heartbeat=15, debug=True, singlethread=False, printB=False)
         thread_list.append([client.run_forever])
         thread_list.append([client.sendloop])
 
     # run threads
     sys_proc()
-    #sys_join()
+    # sys_join()
 
     # cmd loop
-    signal.signal(signal.SIGINT, lambda signal, frame: cprint.notice_p('Exit SYSTEM: exit'))
+    signal.signal(signal.SIGINT, lambda signal,
+                  frame: cprint.notice_p('Exit SYSTEM: exit'))
     my_cmd = MyCmd()
     my_cmd.cmdloop()
 

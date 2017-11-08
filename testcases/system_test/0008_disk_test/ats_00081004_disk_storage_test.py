@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import time
-import telnetlib
 import os
 import sys
-sys.path.append(os.path.abspath('.'))
+import re
+
 from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
 
@@ -13,36 +13,46 @@ import APIs.common_methods as common_methods
 class Test(common_methods.CommMethod):
 
     def run(self):
-        return main()
+        self.ssh.connect()
+        result = self.ssh.send("dd if=/dev/zero of=/udisk/usb1/testfiles count=5 bs=1M")
+        self.ssh.send("cp -R /udisk/usb1/testfiles /udisk/user")
+        result = self.ssh.send('ls -l /udisk/user/testfiles')
+        if re.search(r'testfiles', result, re.S):
+            self.LOG.debug('cp -R /udisk/usb1/testfiles /udisk/user success!')
+        else:
+            self.LOG.error('cp -R /udisk/usb1/testfiles /udisk/user failed![%s]' % result)
+            return self.case_fail()
+
+        self.ssh.send("cp -R /udisk/user/testfiles /udisk/monitor")
+        result = self.ssh.send('ls -l /udisk/monitor/testfiles')
+        if re.search(r'testfiles', result, re.S):
+            self.LOG.debug('cp -R /udisk/user/testfiles /udisk/monitor success!')
+        else:
+            self.LOG.error('cp -R /udisk/user/testfiles /udisk/monitor failed!')
+            return self.case_fail()
+
+        self.ssh.send("mv /udisk/user/testfiles /udisk/monitor/testfiles2")
+        result = self.ssh.send('ls -l /udisk/monitor/testfiles2')
+        if re.search(r'testfiles2', result, re.S):
+            self.LOG.debug('mv /udisk/user/testfiles /udisk/monitor/testfiles2 success!')
+        else:
+            self.LOG.error('mv /udisk/user/testfiles /udisk/monitor/testfiles2 failed!')
+            return self.case_fail()
+
+        self.ssh.send("mv /udisk/monitor/testfiles /udisk/user/testfiles2")
+        result = self.ssh.send('ls -l /udisk/user/testfiles2')
+        if re.search(r'testfiles2', result, re.S):
+            self.LOG.debug('mv /udisk/monitor/testfiles /udisk/user/testfiles2 success!')
+        else:
+            self.LOG.error('mv /udisk/monitor/testfiles /udisk/user/testfiles2 failed!')
+            return self.case_fail()
+
+        return self.case_pass()
 
 
-        
-Host = '192.168.10.1' 
-finish = ':/#'
-#执行命令
-def execmd(comm):
-        #print comm
-        comm=comm.encode('ascii')
-        tn = telnetlib.Telnet(Host)
-        tn.open(Host)
-        time.sleep(5)
-        rd=tn.read_very_eager()
-        x=tn.write(comm +'\n')
-        time.sleep(3)
-        rd=tn.read_very_eager()
-        return rd
-#copy文件    
-def copyfile():
-    try:
-        execmd("cp -R //udisk//usb1//testfiles //udisk//user")
-        execmd("cp -R //udisk//user//testfiles //udisk//monitor")
-        execmd("mv //udisk//user//testfiles //udisk//monitor")
-        execmd("mv //udisk//monitor//testfiles //udisk//user")
-        return 0
-    except Exception,e:
-        return 1
-    
-def main():
-    return copyfile()
-    
-    
+    def common_clean_up(self):
+        self.ssh.send("rm -rf /udisk/usb1/testfiles")
+        self.ssh.send("rm -rf /udisk/user/testfiles")
+        self.ssh.send("rm -rf /udisk/monitor/testfiles")
+        self.ssh.send("rm -rf /udisk/monitor/testfiles2")
+        self.ssh.send("rm -rf /udisk/user/testfiles2")

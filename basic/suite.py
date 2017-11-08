@@ -31,15 +31,12 @@ class Suite():
     def __init__(self, config_file, id, name, cases, sub_suites):
         self.config_file = config_file
         self.cprint = cprint(__name__)
-
         self.id = id
         self.name = name
-
         self.cases = cases
-
         self.sub_suites = sub_suites
-
         self.fail_cases = []
+        self.need_stop = False
 
     def __cmp__(self, other):
         if self.__eq__(other):
@@ -116,19 +113,25 @@ class Suite():
                 else:
                     self.fail_cases.append(fail_cases)
 
-    def set_case_state(self, new_state):
-        if new_state in CASE_STATE:
-            self.state = new_state
-            return True
-        else:
-            LOG.p.warn(new_state + " is invalid state!")
-            return False
+    def my_son(self, *arg):
+        grandson = threading.Thread(target=self.mu_grandson)
+        grandson.setDaemon(True)
+        grandson.start()
+        while self.need_stop == False:
+            #self.cprint.yinfo_p("Oh, it is son!")
+            time.sleep(1)
+        #self.cprint.yinfo_p("Oh, son stop!")
+
+    def mu_grandson(self, *arg):
+        cmd_result = my_system_no_check("nosetests -w {} -v -s --exe --with-id --with-xunit --xunit-file={} --with-html-output --html-out-file={} 2>{}".format(
+            self.get_suite_name(), self.suite_log_dir + 'result.xml', self.suite_log_dir + 'result.html', self.suite_log_dir + 'stdout.log'))
+        self.need_stop = True
+        #self.cprint.notice_p("Oh, grandson stop!")
 
     def run(self):
         self.__clean_testlog()
-
         log_dir = self.__get_suite_dir()
-
+        self.suite_log_dir = log_dir
         try:
             os.mkdir(log_dir)
         except Exception as er:
@@ -136,30 +139,23 @@ class Suite():
                 'Can not create log dir: %s\n[[%s]]' % (log_dir, str(er)))
             sys.exit()
 
-        cmd_result = my_system_no_check("nosetests -w {} -v -s --exe --with-id --with-xunit --xunit-file={} --with-html-output --html-out-file={} 2>{}".format(
-            self.get_suite_name(), log_dir + 'result.xml', log_dir + 'result.html', log_dir + 'stdout.log'))
+        son = threading.Thread(target=self.my_son)
+        son.start()
+        try:
+            while(self.need_stop == False):
+                #self.cprint.warn_p("Oh, it is me!")
+                time.sleep(1)
+        except Exception as e:
+            #self.cprint.warn_p("Oh, me stop!" + str(e))
+            pass
+        finally:
+            self.need_stop = True
+            son.join()
+            self.need_stop = False
+            #self.cprint.warn_p("Oh, update stop flag!")
+
         common_APIs.dir_copy(self.__get_tmp_dir(), log_dir)
         return log_dir
-
-
-'''
-class SuiteResource():
-    def __init__(self):
-        self.cases = {}
-        self.case_file_list = case_file_list
-
-
-    def is_valid_case(self, id):
-        return id in self.cases
-
-    @need_add_lock(cases_lock)
-    def get_case_state(self, id):
-        if id in self.cases:
-            return self.cases[id].get_case_state()
-        else:
-            LOG.p.warn("Invalid case: " + id)
-            return None
-'''
 
 
 if __name__ == '__main__':

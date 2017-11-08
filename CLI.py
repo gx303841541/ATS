@@ -153,7 +153,7 @@ class MyCmd(Cmd):
                                 str(getattr(self.cases[arg], item)).ljust(40))
             cprint.debug_p('-' * 30)
         else:
-            cprint.warning_p('unknow case: %s' % (arg))
+            cprint.warn_p('unknow case: %s' % (arg))
 
     def help_listcases(self):
         cprint.common_p(
@@ -195,7 +195,7 @@ class MyCmd(Cmd):
         if arg in self.suites:
             self.ndo_suite_show(arg)
         else:
-            cprint.warning_p('unknow suite: %s' % (arg))
+            cprint.warn_p('unknow suite: %s' % (arg))
 
     def help_listsuites(self):
         cprint.common_p("will list all the suites")
@@ -214,7 +214,7 @@ class MyCmd(Cmd):
         with open(stout_file, 'r') as f:
             all = f.read()
             if len(all) > 0:
-                log_list = re.split(r'\n\n+', all, re.S)
+                log_list = re.split(r'==========+', all, re.S)
                 if log_list:
                     pass
                 else:
@@ -223,8 +223,8 @@ class MyCmd(Cmd):
                 cprint.error_p("No case found or something unknow happen!")
                 return 1
 
-            cases = re.findall(
-                r'(#\d+\s+[\w.]+\s+[.]+\s+.*?[\r\n]+(?:ok|FAIL))(?:[\s\r\n]|$)', log_list[0], re.S | re.I)
+            cases = re.split(r'\n(?=#)', log_list[0], re.S)
+            #cases = re.findall(r'(#\d+\s+.*?[\r\n]+(?:ok|FAIL|ERROR))', log_list[0], re.S)
 
             cprint.debug_p('Total cases: ' + str(len(cases)))
 
@@ -233,24 +233,35 @@ class MyCmd(Cmd):
             fail_cases = 0
             fail_list = []
             for case in cases:
+
+                info = re.findall(r'(^#\d+\s+\w+|^(?:ok|FAIL|ERROR))', case, re.M)
+                if len(info) == 2:
+                    name, result = info
+                elif len(info) == 1 and case == cases[-1]:
+                    name, result = info + ['interrupted']
+                else:
+                    cprint.error_p('ATS result handler module has errors, please check here!')
+                    for i in info:
+                        cprint.error_p(i)
+
                 r = re.match(
-                    r'#(?P<index>\d+)\s+(?P<name>\w+)[\w.]+\s+[.]+\s+.*?[\r\n]+(?P<result>\w+)(?:[\r\n]+|$)', case, re.S)
+                    r'#(?P<index>\d+)\s+(?P<name>\w+)', name, re.S)
                 if r:
                     total_cases += 1
                 else:
                     continue
 
-                if r.group('result') == 'ok':
+                if result == 'ok':
                     result = 'pass'
                     pass_cases += 1
                     cprint.notice_p(r.group('index').ljust(
-                        5) + ': ' + r.group('name').ljust(40, '.') + result)
+                        5) + ': ' + r.group('name').ljust(60, '.') + result)
                 else:
-                    result = 'fail'
+                    #result = 'fail'
                     fail_cases += 1
                     fail_list.append(r.group('name') + '.py')
                     cprint.error_p(r.group('index').ljust(
-                        5) + ': ' + r.group('name').ljust(40, '.') + result)
+                        5) + ': ' + r.group('name').ljust(60, '.') + result)
                 self.cases[self.__get_id_by_name(
                     r.group('name') + '.py')].set_case_result(result)
                 self.cases[self.__get_id_by_name(
@@ -297,7 +308,7 @@ class MyCmd(Cmd):
     def do_runagain(self, arg, opts=None):
         self.__clean_testlog()
         if not self.last_suite_name:
-            cprint.warning_p('No suite had ran so far!')
+            cprint.warn_p('No suite had ran so far!')
             return 1
         else:
             cprint.notice_p('Last suite is: %s' % (self.last_suite_name))
@@ -320,11 +331,11 @@ class MyCmd(Cmd):
             if arg in self.cases:
                 self.cases[arg].run()
             else:
-                cprint.warning_p('%s not found!' % (arg))
+                cprint.warn_p('%s not found!' % (arg))
 
         elif re.match(r'[\d\s]+', arg, re.S):
             if not self.last_suite_name:
-                cprint.warning_p('No suite had ran so far!')
+                cprint.warn_p('No suite had ran so far!')
                 return 1
 
             my_system_full_output(
@@ -437,7 +448,7 @@ def sys_cleanup():
 
 
 def sig_handler(signal, frame):
-    cprint.notice_p('Exit SYSTEM: exit')
+    cprint.notice_p('Get signal KeyboardInterrupt')
 
 
 if __name__ == '__main__':
@@ -469,7 +480,7 @@ if __name__ == '__main__':
             #    if e.errno == 4:
             #        cprint.notice_p('Exit SYSTEM: exit')
             #    else:
-            #        cprint.warning_p("some unknow error happen!")
+            #        cprint.warn_p("some unknow error happen!")
             except KeyboardInterrupt:
                 cprint.notice_p('Exit SYSTEM: exit')
 
