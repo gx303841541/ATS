@@ -96,7 +96,7 @@ class MyLogger:
         msg_prefix = '[' + \
             os.path.basename(s[-2][0]) + ': ' + str(s[-2][1]) + '] '
 
-        self.cprint.set_colour(FOREGROUND_BLUE)       
+        self.cprint.set_colour(FOREGROUND_BLUE)
         self.p.debug(msg_prefix + message)
         self.cprint.reset_colour()
 
@@ -105,7 +105,7 @@ class MyLogger:
         msg_prefix = '[' + \
             os.path.basename(s[-2][0]) + ': ' + str(s[-2][1]) + '] '
 
-        self.cprint.set_colour(FOREGROUND_GREEN)     
+        self.cprint.set_colour(FOREGROUND_GREEN)
         self.p.info(msg_prefix + message)
         self.cprint.reset_colour()
 
@@ -123,7 +123,7 @@ class MyLogger:
         msg_prefix = '[' + \
             os.path.basename(s[-2][0]) + ': ' + str(s[-2][1]) + '] '
 
-        self.cprint.set_colour(FOREGROUND_PINK)        
+        self.cprint.set_colour(FOREGROUND_PINK)
         self.p.warn(msg_prefix + message)
         self.cprint.reset_colour()
 
@@ -132,7 +132,7 @@ class MyLogger:
         msg_prefix = '[' + \
             os.path.basename(s[-2][0]) + ': ' + str(s[-2][1]) + '] '
 
-        self.cprint.set_colour(FOREGROUND_RED)      
+        self.cprint.set_colour(FOREGROUND_RED)
         self.p.error(msg_prefix + message)
         self.cprint.reset_colour()
 

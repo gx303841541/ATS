@@ -14,7 +14,7 @@ import sys
 
 
 class Http():
-    def __init__(self, router_url='http://192.168.10.1/cgi-bin/test1'):
+    def __init__(self, router_url='http://192.168.10.1/cgi-bin/test1', logger=None):
         self.router_url = router_url
 
     #路由器当前上网方式

@@ -85,9 +85,9 @@ class MySsh():
             out = stdout.read()
 
         except Exception as er:
-            self.LOG.error('Send %s wrong: %s' % (cmd, str(er)))
+            self.LOG.error('Send %s wrong: %s\n[[%s]]' % (cmd, err, str(er)))
             return None
-        return out + err
+        return out
 
 
     def get(self, timeout=5, prompt=None):
