@@ -121,7 +121,7 @@ class MyCmd(Cmd):
             else:
                 self.coms_list[args[0]].queue_out.put(' '.join(args[1:]))
         else:
-            cprint.warning_p("unknow port: %s!" % (arg))
+            cprint.warn_p("unknow port: %s!" % (arg))
 
     def default(self, arg, opts=None):
         try:

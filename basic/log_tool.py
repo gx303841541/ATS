@@ -147,9 +147,10 @@ class MyLogger:
 
 
 if __name__ == '__main__':
-    mylog = MyLogger('yyx.log')
-    mylog.debug("11111")
-    mylog.info("11111")
-    mylog.warn("11111")
-    mylog.error("11111")
-    mylog.cprint.error_p('xxoo')
+    mylog = MyLogger('yyx.log', fenable=False, renable=False)
+    mylog.debug("Who is the most beautiful woman in the world?")
+    mylog.info("Who is the most beautiful woman in the world?")
+    mylog.yinfo("Who is the most beautiful woman in the world?")
+    mylog.warn("Who is the most beautiful woman in the world?")
+    mylog.error("Who is the most beautiful woman in the world?")
+    #mylog.cprint.error_p('xxoo')

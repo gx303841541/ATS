@@ -246,8 +246,11 @@ class MyClient:
             else:
                 pass
 
-    def send_once(self):
+    def send_once(self, data=None):
         try:
+            if data:
+                self.queue['queue_out'].put(data)
+
             if self.queue['queue_out'].empty():
                 if self.heartbeat:
                     time.sleep(self.heartbeat)

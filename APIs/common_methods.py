@@ -5,14 +5,22 @@ by Kobe Gong 2017-8-21
 use:
     methods in class CommMethod can be used by all the testcases
 """
-import re, sys
+import re, sys, json
 
 from basic.base import Base
 
 
 class CommMethod(Base):
-    def myprint(self):
-        self.LOG.warn('Just for test!')
+    def convert_to_dictstr(self, src):
+        if isinstance(src, dict):
+            return json.dumps(src, sort_keys=True, indent=4, separators=(',', ': ')).decode('utf-8').encode(sys.getfilesystemencoding())
+
+        elif isinstance(src, str):
+            return json.dumps(json.loads(src), sort_keys=True, indent=4, separators=(',', ': ')).decode('utf-8').encode(sys.getfilesystemencoding())
+
+        else:
+            self.LOG.error('Unknow type(%s): %s' % (src, str(type(src))))
+            return None
 
     def router_db_info(self, cmds, db='/db/iot_new_router.db', mode_line=True):
         if self.serial.is_open():
