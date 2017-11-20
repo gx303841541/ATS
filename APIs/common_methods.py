@@ -5,7 +5,9 @@ by Kobe Gong 2017-8-21
 use:
     methods in class CommMethod can be used by all the testcases
 """
-import re, sys, json
+import re
+import sys
+import json
 
 from basic.base import Base
 
