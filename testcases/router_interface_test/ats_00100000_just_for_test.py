@@ -36,16 +36,67 @@ import my_socket.my_socket as my_socket
 @register_caseid(casename=__name__)
 class Test(common_methods.CommMethod):
     def run(self):
+        self.mysleep(1)
+
+        msg_on = {
+            "uuid": "No_neeD",
+            "encry": "false",
+            "content": {
+            	"method": "dm_get_device_info",
+            	"req_id": 123,
+            	"params": {
+            		"family_id": 1,
+                    "router_id": 11,
+            		"device_id": [1, 2, 3, 4],
+                    "device_uuid": "112233445566778810",
+            	}
+            },
+        }
+
+        msg_down = {
+            "uuid": "222",
+            "encry": "True",
+            "content": {
+            	"method": "dm_get_device_info",
+            	"req_id": 4,
+            	"params": {
+            		"family_id": 1,
+                    "router_id": 11,
+            		"device_id": [1, 2, 3],
+                    "device_uuid": "112233445566778810",
+            		"user_id": 123,
+                    "jj": {
+                        "a":1,
+                        "b":2
+                    }
+            	}
+            }
+        }
+
+        template = {
+                    			"type_id": 1,
+                    			"name": "空调",
+                    			"order": 1,
+
+                    		}
+
+
+        #self.dict_compare(msg_on, msg_down)
+
+
+
         client = my_socket.MyClient(
             ('192.168.10.1', 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
         client.connect()
 
         while client.is_connected() == False:
             self.LOG.info('wait to connect to socket server...')
+            client.connect()
             time.sleep(1)
 
         cmds = ['select * from table_user_list;', 'select * from table_family_list;']
         result = self.router_db_info(cmds)
+        self.LOG.debug(self.convert_to_dictstr(result[1]))
 
         msg_on = getledMsg(family_id=result[1]['id'], user_id=result[1]['user_id'], device_category_id=1)
         client.send_once(msg_on)
@@ -56,7 +107,19 @@ class Test(common_methods.CommMethod):
             tmp = client.recv_once(timeout=5)
 
         if data:
+            b = self.convert_to_dictstr(data)
+            self.LOG.warn(str(type(b)))
+            print(b)
+            print(data.decode('utf-8').encode(sys.getfilesystemencoding()))
             self.LOG.debug(self.convert_to_dictstr(data))
+
+
+            if self.json_items_compare(template, data):
+                self.LOG.yinfo('OK!')
+            else:
+                self.LOG.yinfo('ERR!')
+
+
         else:
             return self.case_fail("timeout, server no response!")
 
@@ -71,20 +134,25 @@ def getledMsg(family_id, user_id, device_category_id=0):
         "content": {
 
 
-        	"method": " dm_set_shortcut_mode ",
-        	"req_id": 178237278,
-        	"timestamp": 1498111457196,
+        	"method": "dm_add_room",
+        	"timestamp": 123456789,
+        	"req_id": 123,
         	"params": {
-        		"family_id": 1001,
-        		"room_id": 2,
-        		"mode": "on"
+        		"family_id": family_id,
+        		"room_name": "本拉登的房间2",
+        		"user_id": user_id,
+        		"is_default": 0,
+        		"order": 7758521303841541
         	}
-
 
 
         }
     }
-    msg_on['content']['params']['family_id'] = family_id
+    #msg_on['content']['params']['family_id'] = family_id
     #msg_on['content']['params']['device_category_id'] = device_category_id
     #msg_on['content']['params']['user_id'] = user_id
     return json.dumps(msg_on) + '\n'
+
+
+if __name__ == '__main__':
+    Test().test()

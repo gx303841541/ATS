@@ -648,7 +648,7 @@ class HtmlOutput(Plugin):
         has_output = bool(o or e)
         tid = ((n == 0 or n == 3) and 'p' or 'f') + 't%s.%s' % (cid+1,tid+1)
         #name = t.id().split('.')[-1]
-        name = t.id().split('.')[0].split('_')[1]
+        name = t.id().split('.')[0].split('.')[0]
         doc = t.shortDescription() or ""
         desc = doc and ('%s: %s' % (name, doc)) or name
         tmpl = has_output and TemplateData.REPORT_TEST_WITH_OUTPUT_TMPL or TemplateData.REPORT_TEST_NO_OUTPUT_TMPL

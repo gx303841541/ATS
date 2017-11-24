@@ -13,7 +13,10 @@ import os
 import shutil
 import datetime
 import threading
-import ConfigParser
+if sys.platform == 'linux':
+    import configparser as ConfigParser
+else:
+    import ConfigParser
 import threading
 
 from basic.cprint import cprint
@@ -47,7 +50,7 @@ class Case():
 
     def __eq__(self, other):
         if not isinstance(other, Case):
-            raise TypeError, "Can't cmp other type to Case!"
+            raise(TypeError, "Can't cmp other type to Case!")
         if self.name == other.name:
             return True
         else:
@@ -55,7 +58,7 @@ class Case():
 
     def __lt__(self, other):
         if not isinstance(other, Case):
-            raise TypeError, "Can't cmp other type to Case!"
+            raise(TypeError, "Can't cmp other type to Case!")
         if self.name < other.name:
             return True
         else:

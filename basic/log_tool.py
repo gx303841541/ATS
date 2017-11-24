@@ -18,7 +18,6 @@ if sys.platform == 'linux':
 from .cprint import cprint
 
 
-
 # Windows CMD命令行 字体颜色定义 text colors
 FOREGROUND_BLACK = 0x00  # black.
 FOREGROUND_DARKBLUE = 0x01  # dark blue.
@@ -65,31 +64,44 @@ class MyLogger:
         self.p = logging.getLogger(path)
         self.p.setLevel(logging.DEBUG)
         #fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', '%m-%d %H:%M:%S')
-        fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
+        self.fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
 
         # 设置CMD日志
         if cenable == True and sys.platform == 'linux':
             pass
         else:
-            sh = logging.StreamHandler()
-            sh.setFormatter(fmt)
-            sh.setLevel(clevel)
-            self.p.addHandler(sh)
+            self.sh = logging.StreamHandler()
+            self.sh.setFormatter(self.fmt)
+            self.sh.setLevel(clevel)
+            self.p.addHandler(self.sh)
 
         # 设置文件日志
         if fenable == True:
-            fh = logging.FileHandler(path)
-            fh.setFormatter(fmt)
-            fh.setLevel(flevel)
-            self.p.addHandler(fh)
+            self.fh = logging.FileHandler(path)
+            self.fh.setFormatter(self.fmt)
+            self.fh.setLevel(flevel)
+            self.p.addHandler(self.fh)
 
         # 定义一个RotatingFileHandler，最多备份5个日志文件，每个日志文件最大10M
         if renable == True:
-            rh = RotatingFileHandler(
+            self.rh = RotatingFileHandler(
                 'system.log', maxBytes=10 * 1024 * 1024, backupCount=5)
-            rh.setFormatter(fmt)
-            rh.setLevel(rlevel)
-            self.p.addHandler(rh)
+            self.rh.setFormatter(self.fmt)
+            self.rh.setLevel(rlevel)
+            self.p.addHandler(self.rh)
+
+    def set_level(self, clevel=logging.DEBUG):
+        self.p.setLevel(clevel)
+
+    def set_fmt(self, fmt = logging.Formatter('')):
+        self.sh.setFormatter(fmt)
+        self.fh.setFormatter(fmt)
+        self.rh.setFormatter(fmt)
+
+    def recover_fmt(self):
+        self.sh.setFormatter(self.fmt)
+        self.fh.setFormatter(self.fmt)
+        self.rh.setFormatter(self.fmt)
 
     def debug(self, message):
         s = traceback.extract_stack()
@@ -153,4 +165,12 @@ if __name__ == '__main__':
     mylog.yinfo("Who is the most beautiful woman in the world?")
     mylog.warn("Who is the most beautiful woman in the world?")
     mylog.error("Who is the most beautiful woman in the world?")
-    #mylog.cprint.error_p('xxoo')
+
+    mylog.set_level(logging.ERROR)
+
+    mylog.debug("Who is the most beautiful woman in the world?")
+    mylog.info("Who is the most beautiful woman in the world?")
+    mylog.yinfo("Who is the most beautiful woman in the world?")
+    mylog.warn("Who is the most beautiful woman in the world?")
+    mylog.error("Who is the most beautiful woman in the world?")
+    # mylog.cprint.error_p('xxoo')

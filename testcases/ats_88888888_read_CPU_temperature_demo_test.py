@@ -16,7 +16,7 @@ class Test(common_methods.CommMethod):
         self.case_pass('let us go!')
         server = my_socket.MyServer(('', 8888), self.LOG, debug=True)
         server.run_forever()
-        time.sleep(1000)
+        #time.sleep(1000)
         return self.case_pass()
 
         self.telnet.connect()

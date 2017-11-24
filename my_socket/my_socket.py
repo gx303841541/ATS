@@ -87,7 +87,7 @@ class MyServer:
                                             data, title="Get data from " + self.conn_to_addr[conn][0] + ":"))
                                     else:
                                         self.LOG.info(
-                                            "Get data from " + self.conn_to_addr[conn][0] + ": " + data.decode('utf-8').encode(sys.getfilesystemencoding()))
+                                            "Get data from " + self.conn_to_addr[conn][0] + ": " + data)
                             else:
                                 # Interpret empty result as closed connection
                                 self.LOG.error(
@@ -144,7 +144,7 @@ class MyServer:
                                 data, title="Send data to " + self.conn_to_addr[client][0] + ":"))
                         else:
                             self.LOG.yinfo(
-                                "Send data to " + self.conn_to_addr[client][0] + ": " + data.decode('utf-8').encode(sys.getfilesystemencoding()))
+                                "Send data to " + self.conn_to_addr[client][0] + ": " + data)
 
         except Exception as e:
             self.LOG.error(
@@ -224,7 +224,7 @@ class MyClient:
                             self.LOG.info(protocol_data_printB(
                                 data, title="client get data:"))
                         else:
-                            self.LOG.info("client get data: %s" % (data.decode('utf-8').encode(sys.getfilesystemencoding())))
+                            self.LOG.info("client get data: %s" % (repr(data)))
 
                 else:
                     self.LOG.error("Server maybe has closed!")
@@ -264,7 +264,7 @@ class MyClient:
                         self.LOG.yinfo(protocol_data_printB(
                             data, title="client send date:"))
                     else:
-                        self.LOG.yinfo("client send data: %s" % (data.decode('utf-8').encode(sys.getfilesystemencoding())))
+                        self.LOG.yinfo("client send data: %s" % (data))
                 self.client.send(data.encode('utf-8'))
 
         except Exception as e:

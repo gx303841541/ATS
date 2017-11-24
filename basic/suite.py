@@ -17,7 +17,10 @@ import functools
 import logging
 import decimal
 import subprocess
-import ConfigParser
+if sys.platform == 'linux':
+    import configparser as ConfigParser
+else:
+    import ConfigParser
 
 from basic.cprint import cprint
 import APIs.common_APIs as common_APIs
@@ -48,7 +51,7 @@ class Suite():
 
     def __eq__(self, other):
         if not isinstance(other, Suite):
-            raise TypeError, "Can't cmp other type to Suite!"
+            raise(TypeError, "Can't cmp other type to Suite!")
         if self.name == other.name:
             return True
         else:
@@ -56,7 +59,7 @@ class Suite():
 
     def __lt__(self, other):
         if not isinstance(other, Suite):
-            raise TypeError, "Can't cmp other type to Suite!"
+            raise(TypeError, "Can't cmp other type to Suite!")
         if self.name < other.name:
             return True
         else:

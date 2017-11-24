@@ -132,7 +132,7 @@ if __name__ == '__main__':
     thread_list = []
 
 
-    server = my_socket.MyServer(('', 8888), LOG, debug=True, singlethread=False)
+    server = my_socket.MyServer(('', 8888), LOG, debug=True, printB=False)
     thread_list.append([server.run_forever])
     thread_list.append([server.sendloop])
 
