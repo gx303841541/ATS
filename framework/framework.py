@@ -26,8 +26,7 @@ class TestCase(object):
         pass
 
     def setup(self):
-        # test precondition
-        pass
+        self.update_db_info()
 
     def teardown(self):
         if self.serial.is_open():

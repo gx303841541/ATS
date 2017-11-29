@@ -36,7 +36,7 @@ class MySerial():
         else:
             for i in range(len(port_list)):
                 serial_name = list(port_list[i])[0]
-                self.LOG.debug("Get serial port: %s" % (serial_name))
+                #self.LOG.debug("Get serial port: %s" % (serial_name))
                 r_port_list.append(serial_name)
 
         return r_port_list
@@ -84,6 +84,9 @@ class MySerial():
     def readn(self, n=1):
         return self.com.read(n)
 
+    def read(self):
+        return self.com.read()
+
     def readline(self):
         return self.com.readline()
 
@@ -102,10 +105,43 @@ class MySerial():
         return self.com.readable()
 
     def send(self, data):
-        return self.write(data)
+        return self.write(data + '\r')
 
     def write(self, data):
-        return self.com.write(data + '\r')
+        return self.com.write(data)
 
     def timeout_set(self, timeout=100):
         self.com.timeout = timeout
+
+
+class Robot():
+    def __init__(self, port=None, baudrate=115200, logger=None):
+        self.LOG = logger
+        self.port = port
+        self.baudrate = baudrate
+        self.serial = MySerial(port=self.port, baudrate=self.baudrate, logger=self.LOG)
+
+    def open(self, ):
+        self.LOG.debug('To open robot...')
+        if not self.serial.is_open():
+            self.serial.open()
+            self.serial.read()
+        self.serial.write('O')
+        self.serial.read()
+        self.serial.close()
+
+    def close(self, ):
+        self.LOG.debug('To close robot...')
+        if not self.serial.is_open():
+            self.serial.open()
+            self.serial.read()
+        self.serial.write('C')
+        self.serial.read()
+        self.serial.close()
+
+    def led_access_net(self, open_close_time=6):
+        for i in range(open_close_time):
+            self.open()
+            time.sleep(1)
+            self.close()
+            time.sleep(1)

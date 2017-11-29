@@ -67,6 +67,7 @@ class MyCmd(Cmd):
     def __init__(self, config_file='config.ini'):
         Cmd.__init__(self)
         self.prompt = "ATS>"
+        self.config_file_ori = config_file
         self.config_file = ConfigParser.ConfigParser()
         self.config_file.read(config_file)
         self.case_re = r'^ats_\d{8}_\w+_test\.py$'
@@ -398,6 +399,8 @@ class MyCmd(Cmd):
         for item in common_APIs.get_file_by_re(self.config_file.get("system", "case_dir"), r'.*\.pyc'):
             os.remove(item)
 
+        self.config_file.set("router_db", "update_flag", 0)
+        self.config_file.write(open(self.config_file_ori, "w"))
         cprint.notice_p("Exit CLI, good luck!")
         sys.exit()
 
