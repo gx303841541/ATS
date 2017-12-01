@@ -16,7 +16,7 @@ class Test(common_methods.CommMethod):
     def run(self):
         # 数据库查询
         cmds = ['select * from TABLE_ZIGBEE_DEVICE;']
-        result2 = self.router_db_info(cmds)
+        result2 = self.get_router_db_info(cmds)
         common_para_dict = {
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],

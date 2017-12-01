@@ -145,3 +145,18 @@ class Robot():
             time.sleep(1)
             self.close()
             time.sleep(1)
+
+
+class Wifi():
+    def __init__(self, port=None, baudrate=115200, logger=None):
+        self.LOG = logger
+        self.port = port
+        self.baudrate = baudrate
+        self.serial = MySerial(port=self.port, baudrate=self.baudrate, logger=self.LOG)
+
+
+    def wifi_access_net(self, open_close_time=6):
+        if not self.serial.is_open():
+            self.serial.open()
+        self.serial.send('clrcfg')
+        self.serial.send('reboot')

@@ -37,7 +37,10 @@ class CommMethod(Base):
             # 数据库查询
             cmds = ['select * from table_user_list;',
                     'select * from table_family_list;']
-            result = self.router_db_info(cmds)
+            result = self.get_router_db_info(cmds)
+            if not len(result[1]):
+                self.LOG.warn('Read DB failed! Maybe router not binding!')
+                return
             self.config_file.set("router_db", "update_flag", 1)
             self.config_file.set("router_db", "family_id", result[1]['id'])
             self.config_file.set("router_db", "user_id", result[1]['user_id'])
@@ -46,7 +49,7 @@ class CommMethod(Base):
 
             # 数据库中存在相同key时，分开查询
             cmds = ['select * from table_router;']
-            result = self.router_db_info(cmds)
+            result = self.get_router_db_info(cmds)
             self.config_file.set("router_db", "device_uuid", result[1]['device_uuid'])
             self.config_file.set("router_db", "router_id", result[1]['id'])
             self.config_file.write(open(self.config_file_ori, "w"))
@@ -60,7 +63,7 @@ class CommMethod(Base):
             "router_id": self.config_file.get("router_db", "router_id"),
         }
 
-    def router_db_info(self, cmds, db='/db/iot_new_router.db', mode_line=True):
+    def get_router_db_info(self, cmds, db='/db/iot_new_router.db', mode_line=True):
         if self.serial.is_open():
             pass
         else:
@@ -86,6 +89,36 @@ class CommMethod(Base):
         result_str = re.sub(r'\[\d+\.\d+\].*$', '', info_str, re.M)
 
         return result_str, result_dict
+
+    def get_router_db_info_dict(self, cmds, db='/db/iot_new_router.db', mode_line=True, separator='\n'):
+        result_list = []
+        if self.serial.is_open():
+            pass
+        else:
+            self.serial.open()
+        self.serial.send('sqlite3 %s' % (db))
+
+        if mode_line:
+            self.serial.send('.mode line')
+        for cmd in cmds:
+            self.serial.send(cmd)
+        self.serial.send('.exit')
+        info_list = self.serial.readlines()
+        info_str = ''.join(info_list)
+        info_str = re.sub(r'\[\d+\.\d+\].*$', '', info_str, re.M)
+
+        iterms = [item for item in re.split(r'separator', info_str) if item]
+        if iterms:
+            for item in iterms:
+                a = re.findall(u'(\w+)\s*=\s*((?:\S)+)', info_str, re.M)
+                tmp_dict = {}
+                for name, value in a:
+                    tmp_dict[name] = value
+                if tmp_dict:
+                    result_list.append(tmp_dict)
+        else:
+            self.LOG.warn('Read DB failed, no item found!')
+        return result_list
 
     def json_items_compare(self, template_dict, target):
         return self.dict_items_compare(template_dict, json.loads(target))

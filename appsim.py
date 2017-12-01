@@ -57,6 +57,15 @@ class ArgHandle():
             default='000e83c6c10000000000c85b765caf43',
             help='Specify device uuid',
         )
+
+        parser.add_argument(
+            '-c', '--send package number',
+            dest='number_to_send',
+            action='store',
+            default=5000,
+            type=int,
+            help='Specify how many package to send',
+        )
         return parser
 
     def get_args(self, attrname):
@@ -128,6 +137,7 @@ def sys_cleanup():
 
 
 def getMsgup(req_id, uuid):
+    temperature = random.randint(17, 30)
     msg_temp_up={
         "uuid": "111",
         "encry": "false",
@@ -139,7 +149,7 @@ def getMsgup(req_id, uuid):
             "params":{
                 "device_uuid":"",
                 "attribute":{
-                    "temperature":26
+                    "temperature": temperature
                 }
             }
         }
@@ -147,27 +157,6 @@ def getMsgup(req_id, uuid):
     msg_temp_up['content']['req_id'] = req_id
     msg_temp_up['content']['params']['device_uuid'] = uuid
     return str(json.dumps(msg_temp_up)) + '\n'
-
-def getMsgdown(req_id, uuid):
-    msg_temp_down={
-        "uuid": "111",
-        "encry": "false",
-        "content": {
-            "method":"dm_set",
-            "req_id":113468,
-            "token":"",
-            "nodeid": "airconditioner.main.temperature",
-            "params":{
-                "device_uuid":"",
-                "attribute":{
-                    "temperature":27
-                }
-            }
-        }
-    }
-    msg_temp_down['content']['req_id'] = req_id
-    msg_temp_down['content']['params']['device_uuid'] = uuid
-    return str(json.dumps(msg_temp_down)) + '\n'
 
 
 
@@ -189,8 +178,6 @@ if __name__ == '__main__':
     global thread_list
     thread_list = []
 
-
-
     queue_in, queue_out = Queue.Queue(), Queue.Queue()
     client = my_socket.MyClient(('192.168.10.1', 5100), LOG, queue_in, queue_out, singlethread=False)
     thread_list.append([client.run_forever])
@@ -201,29 +188,20 @@ if __name__ == '__main__':
     pp = PProcess({'onlyone': air_control}, LOG)
     thread_list.append([pp.run_forever])
 
-
     # run threads
     sys_proc()
 
-
     try:
-        while True:
+        for i in range(arg_handle.get_args('number_to_send')):
             while client.connected != True:
                 pass
             req_id = random.randint(100, 9999999)
+            reg_id = i
             msg = getMsgup(req_id, arg_handle.get_args('device_uuid'))
             air_control.msgst[req_id]['send_time'] = datetime.datetime.now()
             air_control.queue_out.put(msg)
             LOG.info("send: " + msg.strip())
             time.sleep(arg_handle.get_args('time_interval') / 1000.0)
-
-            req_id += 1
-            msg = getMsgdown(req_id, arg_handle.get_args('device_uuid'))
-            air_control.msgst[req_id]['send_time'] = datetime.datetime.now()
-            air_control.queue_out.put(msg)
-            LOG.info("send: " + msg.strip())
-            time.sleep(arg_handle.get_args('time_interval') / 1000.0)
-
 
     except KeyboardInterrupt:
         LOG.info('KeyboardInterrupt!')
@@ -232,3 +210,22 @@ if __name__ == '__main__':
     except Exception as e:
         LOG.error('something wrong!' + str(e))
         sys.exit()
+
+    pkg_lost = 0
+    min_delay = 8888888888
+    max_delay = 0
+    total_delay = 0
+    for item in air_control.msgst:
+        if 'delaytime' in air_control.msgst[item]:
+            if air_control.msgst[item]['delaytime'] > max_delay:
+                max_delay = air_control.msgst[item]['delaytime']
+            if air_control.msgst[item]['delaytime'] < min_delay:
+                min_delay = air_control.msgst[item]['delaytime']
+            total_delay += air_control.msgst[item]['delaytime']
+        else:
+            pkg_lost += 1
+    LOG.info('Total package: %d' % len(air_control.msgst))
+    LOG.error('Loss Rate: ' + "%.2f" % (pkg_lost * 100.0 / arg_handle.get_args('number_to_send')) + '%')
+    LOG.info('MAX delay time: %dms' % max_delay)
+    LOG.yinfo('MIN delay time: %dms' % min_delay)
+    LOG.info('Average delay time(%d / %d): %.2fms' % (total_delay, (len(air_control.msgst) - pkg_lost), (total_delay + 0.0) / (len(air_control.msgst) - pkg_lost)))

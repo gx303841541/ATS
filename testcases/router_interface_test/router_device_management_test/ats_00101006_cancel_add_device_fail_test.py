@@ -33,7 +33,7 @@ class Test(common_methods.CommMethod):
 
         def add_success():
             ret = self.socket_recv_from_router(timeout=1)
-            if self.get_package_by_keyword(ret, ['dm_add_device', 'result'], except_keyword_list=['mdp_msg']):
+            if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
                 return 1
             else:
                 return 0

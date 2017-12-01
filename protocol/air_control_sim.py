@@ -44,9 +44,9 @@ class AirControl():
         time_diff = (rece_time - self.msgst[json_msg['content']['req_id']]['send_time'])
         self.msgst[json_msg['content']['req_id']]['delaytime'] = time_diff.seconds * 1000.0 + (time_diff.microseconds / 1000.0)
 
-
         if(self.msgst[json_msg['content']['req_id']]['delaytime'] >= 1000):
             self.LOG.error("msg intervavl for %s is too long: %s\n" % (json_msg['content']['req_id'], self.msgst[json_msg['content']['req_id']]['delaytime']))
+            return 'No_need_send'
         else:
             self.LOG.warn('msg intervavl for %s is %f\n' % (json_msg['content']['req_id'], self.msgst[json_msg['content']['req_id']]['delaytime']))
             return 'No_need_send'

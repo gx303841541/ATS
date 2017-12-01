@@ -19,7 +19,7 @@ import paramiko
 import framework.framework as framework
 from . log_tool import MyLogger
 import APIs.common_APIs as common_APIs
-from my_serial.my_serial import MySerial, Robot
+from my_serial.my_serial import MySerial, Robot, Wifi
 from my_http.http import Http
 from win_network.win_network import WinNetwork
 
@@ -58,6 +58,8 @@ class Base(framework.TestCase):
         self.http = Http(router_url='http://' + self.config_file.get("network", "host") + '/cgi-bin/test1', logger=self.LOG)
         self.win_network = WinNetwork(self.config_file.get("network", "ssid"))
         self.robot = Robot(port=self.config_file.get("robot", "port"), baudrate=self.config_file.get("robot", "baudrate"), logger=self.LOG)
+        self.wifi = Wifi(port=self.config_file.get("wifi", "port"), baudrate=self.config_file.get("wifi", "baudrate"), logger=self.LOG)
+
 
 #ssh to router
 class MySsh():

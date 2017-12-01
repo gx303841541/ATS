@@ -68,7 +68,7 @@ class Test(common_methods.CommMethod):
 
 
         cmds = ['select * from table_user_list;', 'select * from table_family_list;']
-        result = self.router_db_info(cmds)
+        result = self.get_router_db_info(cmds)
         self.LOG.debug(self.convert_to_dictstr(result[1]))
         msg_on = getledMsg(family_id=result[1]['id'], user_id=result[1]['user_id'], device_category_id=1)
 
