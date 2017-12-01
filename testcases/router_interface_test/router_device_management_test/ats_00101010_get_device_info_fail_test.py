@@ -15,19 +15,17 @@ from router_msg.router_device_management import API_device_management
 class Test(common_methods.CommMethod):
     def run(self):
         # 数据库查询
-        cmds = ['select * from TABLE_ZIGBEE_DEVICE;']
-        result = self.get_router_db_info(cmds)
-        self.LOG.debug(self.convert_to_dictstr(result[1]))
-
         common_para_dict = {
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
             "router_id": self.common_para_dict["router_id"],
-            "room_id": 1
+            "room_id": 1,
+            "device_id": 1,
+            "device_uuid": '1'
         }
 
         # build msg
-        msg = API_device_management.build_msg_get_device_info(common_para_dict, device_id=1, device_uuid='1')
+        msg = API_device_management.build_msg_get_device_info(common_para_dict)
 
         # send msg to router
         if self.socket_send_to_router(json.dumps(msg) + '\n'):

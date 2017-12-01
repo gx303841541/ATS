@@ -219,6 +219,39 @@ class CommMethod(Base):
                 if len(src) != len(dst):
                     result = False
 
+                def dict_modify(src_dict, dst_key):
+                    for item in src_dict:
+                        if isinstance(item, dict):
+                            if dict_modify(item, dst_key):
+                                return True
+                        else:
+                            if item == dst_key and src_dict[dst_key] != 'no_need':
+                                src_dict[dst_key] = 'no_need'
+                                return True
+                    return False
+
+                def find_from_dict(src_dict):
+                    keys = []
+                    for item in src_dict:
+                        if isinstance(item, dict):
+                            keys += find_from_dict(item)
+                        else:
+                            if re.match(r'no_need', unicode(src_dict[item]), re.I):
+                                keys.append(item)
+                    return keys
+
+                keys = []
+                for item in src:
+                    if isinstance(item, dict) and item:
+                        keys += find_from_dict(item)
+
+                for k in keys:
+                    for item in dst:
+                        if isinstance(item, dict):
+                            dict_modify(item, k)
+
+                self.LOG.warn(str(dst))
+
                 self.LOG.info(indent + '[')
                 check_list = []
                 for item in sorted(list(src + dst)):

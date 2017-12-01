@@ -16,12 +16,24 @@ class API_device_management():
         pass
 
     @staticmethod
-    def build_msg_get_device_list_by_room(common_para_dict):
+    def build_msg_get_device_list_by_room(common_para_dict, device_category_id=0, size=10, begin=0):
         msg = {
             "uuid": "111",
             "encry": "false",
             "content": {
-
+                "method": "dm_get_devices_by_room",
+                "req_id": 123,
+                "timestamp": 123121211,
+                "params": {
+                    "family_id": common_para_dict["family_id"],
+                    "room_id": common_para_dict["room_id"],
+                    "device_category_id": device_category_id,
+                    "user_id": common_para_dict["user_id"],
+                    "page": {
+                        "size": size,
+                        "begin": begin
+                    }
+                }
             }
         }
         return msg
@@ -83,7 +95,7 @@ class API_device_management():
         return msg
 
     @staticmethod
-    def build_msg_get_device_info(common_para_dict, device_id, device_uuid):
+    def build_msg_get_device_info(common_para_dict):
         msg = {
             "uuid": "111",
             "encry": "false",
@@ -94,8 +106,8 @@ class API_device_management():
             	"params": {
             		"family_id": common_para_dict["family_id"],
                     "router_id": common_para_dict["router_id"],
-            		"device_id": device_id,
-                    "device_uuid": device_uuid,
+            		"device_id": common_para_dict["device_id"],
+                    "device_uuid": common_para_dict["device_uuid"],
             		"user_id": common_para_dict["user_id"]
             	}
             }

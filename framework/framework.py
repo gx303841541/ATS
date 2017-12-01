@@ -38,6 +38,9 @@ class TestCase(object):
         if self.telnet.is_open():
             self.telnet.close()
 
+        self.wifi.wifi_close()
+
+
     @istest
     @with_setup(setup, teardown)
     def test(self):

@@ -160,3 +160,7 @@ class Wifi():
             self.serial.open()
         self.serial.send('clrcfg')
         self.serial.send('reboot')
+
+    def wifi_close(self):
+        if self.serial.is_open():
+            self.serial.close()

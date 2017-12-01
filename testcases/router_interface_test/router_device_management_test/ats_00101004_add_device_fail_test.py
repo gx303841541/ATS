@@ -32,7 +32,7 @@ class Test(common_methods.CommMethod):
             return self.case_fail("Send msg to router failed!")
 
         # recv msg from router
-        data = self.socket_recv_from_router(timeout=65)
+        data = self.socket_recv_from_router(timeout=62)
         if data:
             dst_package = self.get_package_by_keyword(data, ['dm_add_device', 'result'], except_keyword_list=['mdp_msg'])
             for msg in dst_package:

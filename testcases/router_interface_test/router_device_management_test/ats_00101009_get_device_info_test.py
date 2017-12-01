@@ -15,10 +15,7 @@ from router_msg.router_device_management import API_device_management
 class Test(common_methods.CommMethod):
     def run(self):
         # 数据库查询
-        cmds = ['select * from TABLE_ZIGBEE_DEVICE;']
-        result = self.get_router_db_info(cmds)
-        self.LOG.debug(self.convert_to_dictstr(result[1]))
-
+        result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE;'])
         common_para_dict = {
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
@@ -26,27 +23,33 @@ class Test(common_methods.CommMethod):
             "room_id": 1
         }
 
-        if result[1].get('device_uuid', None):
-            device_id, device_uuid = int(result[1]['id']), result[1]['device_uuid']
+        if result and 'device_uuid' in result[1]:
+            common_para_dict['device_uuid'] = result[1]['device_uuid']
+            common_para_dict['device_id'] = int(result[1]['id'])
         else:
-            # build msg and send msg to router
+            # add WIFI device
+            # build msg
             msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=5)
+
+            # send msg to router
             if self.socket_send_to_router(json.dumps(msg) + '\n'):
                 self.robot.led_access_net()
-                self.mysleep(20)
+                def add_success():
+                    ret = self.socket_recv_from_router(timeout=1)
+                    if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
+                        return 1
+                    else:
+                        return 0
+                if self.mysleep(65, feedback=add_success):
+                    self.LOG.info('Add device already success!')
+                    result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE;'])
+                    common_para_dict['device_uuid'] = result[1]['device_uuid']
+                    common_para_dict['device_id'] = int(result[1]['id'])
             else:
                 return self.case_fail("Send msg to router failed!")
 
-            cmds = ['select * from TABLE_ZIGBEE_DEVICE;']
-            result = self.router_db_info(cmds)
-            self.LOG.debug(self.convert_to_dictstr(result[1]))
-            if result[1].get('device_uuid', None):
-                device_id, device_uuid = int(result[1]['id']), result[1]['device_uuid']
-            else:
-                return self.case_fail("device add failed!")
-
         # build msg
-        msg = API_device_management.build_msg_get_device_info(common_para_dict, device_id=device_id, device_uuid=device_uuid)
+        msg = API_device_management.build_msg_get_device_info(common_para_dict)
 
         # send msg to router
         if self.socket_send_to_router(json.dumps(msg) + '\n'):
@@ -74,8 +77,8 @@ class Test(common_methods.CommMethod):
             	"code": 0,
             	"msg": "success",
             	"result": {
-            		"device_id": device_id,
-            		"device_uuid": device_uuid,
+            		"device_id": common_para_dict['device_id'],
+            		"device_uuid": common_para_dict['device_uuid'],
             		"family_id": common_para_dict['family_id'],
                     "user_id": common_para_dict['user_id'],
             		"room_id": common_para_dict['room_id'],

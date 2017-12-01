@@ -195,8 +195,8 @@ if __name__ == '__main__':
         for i in range(arg_handle.get_args('number_to_send')):
             while client.connected != True:
                 pass
-            req_id = random.randint(100, 9999999)
-            reg_id = i
+            #req_id = random.randint(100, 9999999)
+            req_id = i + 88000000
             msg = getMsgup(req_id, arg_handle.get_args('device_uuid'))
             air_control.msgst[req_id]['send_time'] = datetime.datetime.now()
             air_control.queue_out.put(msg)
@@ -211,7 +211,12 @@ if __name__ == '__main__':
         LOG.error('something wrong!' + str(e))
         sys.exit()
 
+    while not air_control.queue_out.empty():
+        time.sleep(1)
+    time.sleep(5)
+
     pkg_lost = 0
+    pkg_lost_list = []
     min_delay = 8888888888
     max_delay = 0
     total_delay = 0
@@ -224,7 +229,14 @@ if __name__ == '__main__':
             total_delay += air_control.msgst[item]['delaytime']
         else:
             pkg_lost += 1
+            pkg_lost_list.append(item)
+
+
     LOG.info('Total package: %d' % len(air_control.msgst))
+    if pkg_lost_list:
+        LOG.error('Package with these ids have lost:')
+        for i in pkg_lost_list:
+            LOG.warn('%d' % i)
     LOG.error('Loss Rate: ' + "%.2f" % (pkg_lost * 100.0 / arg_handle.get_args('number_to_send')) + '%')
     LOG.info('MAX delay time: %dms' % max_delay)
     LOG.yinfo('MIN delay time: %dms' % min_delay)

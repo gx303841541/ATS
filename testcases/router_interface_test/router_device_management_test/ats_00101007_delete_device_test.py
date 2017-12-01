@@ -15,13 +15,35 @@ from router_msg.router_device_management import API_device_management
 class Test(common_methods.CommMethod):
     def run(self):
         # 数据库查询
-        cmds = ['select * from TABLE_ZIGBEE_DEVICE;']
-        result2 = self.get_router_db_info(cmds)
+        result = self.get_router_db_info(['select * from TABLE_WIFI_DEVICE;'])
         common_para_dict = {
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
-            "device_uuid": result2[1]['device_uuid'],
+            "room_id": 1
         }
+
+        if result and 'device_uuid' in result[1]:
+            common_para_dict['device_uuid'] = result[1]['device_uuid']
+        else:
+            # add WIFI device
+            # build msg
+            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=1)
+
+            # send msg to router
+            if self.socket_send_to_router(json.dumps(msg) + '\n'):
+                self.wifi.wifi_access_net()
+                def add_success():
+                    ret = self.socket_recv_from_router(timeout=1)
+                    if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
+                        return 1
+                    else:
+                        return 0
+                if self.mysleep(65, feedback=add_success):
+                    self.LOG.info('Add device already success!')
+                    result = self.get_router_db_info(['select * from TABLE_WIFI_DEVICE;'])
+                    common_para_dict['device_uuid'] = result[1]['device_uuid']
+            else:
+                return self.case_fail("Send msg to router failed!")
 
         # build msg
         msg = API_device_management.build_msg_delete_device(common_para_dict)

@@ -15,7 +15,7 @@ from router_msg.router_device_management import API_device_management
 class Test(common_methods.CommMethod):
     def run(self):
         # 数据库查询
-        devices = self.get_router_db_info_dict(['select * from TABLE_WIFI_DEVICE;'], db='/db/iot_new_router.db', mode_line=True, separator='\n')
+        devices = self.get_router_db_info_dict(['select * from TABLE_WIFI_DEVICE;'])
         common_para_dict = {
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
@@ -37,7 +37,7 @@ class Test(common_methods.CommMethod):
                     else:
                         return 0
                 if self.mysleep(65, feedback=del_success):
-                    self.LOG.info('Add device already success!')
+                    self.LOG.info('Delete device already success!')
             else:
                 return self.case_fail("Send msg to router failed!")
 
