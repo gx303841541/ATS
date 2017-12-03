@@ -250,8 +250,6 @@ class CommMethod(Base):
                         if isinstance(item, dict):
                             dict_modify(item, k)
 
-                self.LOG.warn(str(dst))
-
                 self.LOG.info(indent + '[')
                 check_list = []
                 for item in sorted(list(src + dst)):
