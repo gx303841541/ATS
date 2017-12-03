@@ -221,8 +221,8 @@ class CommMethod(Base):
 
                 def dict_modify(src_dict, dst_key):
                     for item in src_dict:
-                        if isinstance(item, dict):
-                            if dict_modify(item, dst_key):
+                        if isinstance(src_dict[item], dict):
+                            if dict_modify(src_dict[item], dst_key):
                                 return True
                         else:
                             if item == dst_key and src_dict[dst_key] != 'no_need':
