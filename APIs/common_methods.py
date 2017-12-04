@@ -233,8 +233,8 @@ class CommMethod(Base):
                 def find_from_dict(src_dict):
                     keys = []
                     for item in src_dict:
-                        if isinstance(item, dict):
-                            keys += find_from_dict(item)
+                        if isinstance(src_dict[item], dict):
+                            keys += find_from_dict(src_dict[item])
                         else:
                             if re.match(r'no_need', unicode(src_dict[item]), re.I):
                                 keys.append(item)
