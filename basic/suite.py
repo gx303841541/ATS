@@ -40,6 +40,7 @@ class Suite():
         self.sub_suites = sub_suites
         self.fail_cases = []
         self.need_stop = False
+        self.suite_log_dir = self.__get_suite_dir()
 
     def __cmp__(self, other):
         if self.__eq__(other):
@@ -91,6 +92,9 @@ class Suite():
                                           re.S) + '-' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + dir_separator
         return common_APIs.dirit(log_dir)
 
+    def get_suite_log_dir(self):
+        return self.suite_log_dir
+
     def get_suite_id(self):
         return self.id
 
@@ -133,8 +137,7 @@ class Suite():
 
     def run(self):
         self.__clean_testlog()
-        log_dir = self.__get_suite_dir()
-        self.suite_log_dir = log_dir
+        log_dir = self.suite_log_dir
         try:
             os.mkdir(log_dir)
         except Exception as er:

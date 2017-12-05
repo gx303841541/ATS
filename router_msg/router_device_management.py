@@ -115,49 +115,62 @@ class API_device_management():
         return msg
 
     @staticmethod
-    def build_msg_get_device_list_by_type(common_para_dict):
+    def build_msg_get_device_list_by_family(common_para_dict, device_category_id=0, size=10, begin=0):
         msg = {
             "uuid": "111",
             "encry": "false",
             "content": {
-
-
+            	"method": "dm_get_devices_by_family",
+            	"req_id": 123,
+            	"timestamp": 123121211,
+            	"params": {
+            		"family_id": common_para_dict["family_id"],
+            		"device_category_id": device_category_id,
+            		"user_id": common_para_dict["user_id"],
+            		"page": {
+            			"size": size,
+            			"begin": begin
+            		}
+            	}
             }
         }
         return msg
 
     @staticmethod
-    def build_msg_get_device_list_by_family(common_para_dict):
+    def build_msg_modify_device_name(common_para_dict, device_name):
         msg = {
             "uuid": "111",
             "encry": "false",
             "content": {
-
-
+            	"method": "dm_update_device",
+            	"timestamp": 1490229730,
+            	"req_id": 123,
+            	"params": {
+            		"family_id": common_para_dict["family_id"],
+            		"device_uuid": common_para_dict["device_uuid"],
+            		"room_id": common_para_dict["room_id"],
+            		"name": device_name,
+            		"user_id": common_para_dict["user_id"],
+            	}
             }
         }
         return msg
 
     @staticmethod
-    def build_msg_modify_device_name(common_para_dict):
+    def build_msg_transfer_device_to_another_room(common_para_dict, device_uuid_list, dst_room_id):
         msg = {
             "uuid": "111",
             "encry": "false",
             "content": {
-
-
-            }
-        }
-        return msg
-
-    @staticmethod
-    def build_msg_transfer_device_to_another_room(common_para_dict):
-        msg = {
-            "uuid": "111",
-            "encry": "false",
-            "content": {
-
-
+            	"method": "dm_move_devices",
+            	"timestamp": 1490229730,
+            	"req_id": 123,
+            	"params": {
+            		"family_id": common_para_dict["family_id"],
+            		"device_uuid": device_uuid_list,
+            		"room_id": dst_room_id,
+            		"user_id": common_para_dict["user_id"],
+            	}
             }
         }
         return msg
@@ -185,20 +198,79 @@ class API_device_management():
             "uuid": "111",
             "encry": "false",
             "content": {
-
-
+            	"method": "dm_get_family_dev_type_list",
+            	"req_id": 123,
+            	"timestamp": 123121211,
+            	"params": {
+            		"family_id": common_para_dict["family_id"],
+            		"user_id": common_para_dict["user_id"],
+            	}
             }
         }
         return msg
 
     @staticmethod
-    def build_msg_get_product_list(common_para_dict):
+    def build_msg_get_product_list(common_para_dict, brand, dev_type, number=10, status=None):
         msg = {
             "uuid": "111",
             "encry": "false",
             "content": {
+            	"method": "dm_get_dev_product_list",
+            	"timestamp": 1490229730,
+            	"req_id": 123,
+            	"params": {
+            		"family_id": common_para_dict["family_id"],
+            		"user_id": common_para_dict["user_id"],
+            		"brand": brand,
+            		"type": dev_type,
+            		"time": 1511424694,
+            		"number": number
+            	}
+            }
+        }
+        if status:
+            msg["content"]["params"]["status"] = status
+        return msg
+
+    @staticmethod
+    def build_msg_led_control(common_para_dict, on_off):
+        msg = {
+            "uuid": "111",
+            "encry": "false",
 
 
+            "content": {
+                "method": "dm_set_zigbee_bulb",
+                "req_id": 456,
+                "timestamp":123456789,
+                "params":{
+                    "cmd":"setOnoff",
+                    "device_uuid": common_para_dict["device_uuid"],
+                    "attribute":{
+                        "mode": on_off
+                    }
+                }
+            }
+        }
+        return msg
+
+    @staticmethod
+    def build_msg_login_router(phone, password):
+        msg = {
+            "uuid": "111",
+            "encry": "false",
+            "content": {
+                "method": "um_login_pwd",
+                "timestamp": 12345667,
+                "req_id": 123,
+                "params": {
+                    "phone": phone,
+                    "pwd": password,
+                    "os_type": "Android",
+                    "app_version":"v0.5",
+                    "os_version":"android4.3",
+                    "hardware_version":"Huawei"
+                }
             }
         }
         return msg

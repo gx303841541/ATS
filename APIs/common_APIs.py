@@ -14,6 +14,7 @@ import sys
 from subprocess import *
 import functools
 import struct
+import hashlib
 
 
 '''
@@ -159,3 +160,9 @@ def crc(s):
 
     result %= 0xff
     return struct.pack('B', result)
+
+
+def get_md5(strtext):
+    m2 = hashlib.md5()
+    m2.update(strtext)
+    return str(m2.hexdigest())

@@ -173,8 +173,10 @@ class CommMethod(Base):
                 time.sleep(1)
 
     def socket_send_to_router(self, data):
-        self.client = my_socket.MyClient(
-            (self.config_file.get("network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
+        if hasattr(self, 'client'):
+            pass
+        else:
+            self.client = my_socket.MyClient((self.config_file.get("network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
 
         if self.client.is_connected() or self.client.connect():
             pass
@@ -186,6 +188,11 @@ class CommMethod(Base):
         return True
 
     def socket_recv_from_router(self, timeout=1, pkg_num=0):
+        if self.client:
+            pass
+        else:
+            self.client = my_socket.MyClient((self.config_file.get("network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
+
         data = ''
         if pkg_num == 0:
             tmp = 1
