@@ -16,7 +16,7 @@ class Test(common_methods.CommMethod):
 
     def run(self):
         '''
-        if self.serial.open() == 0:
+        if self.serial.open():
             self.serial.write('firstboot -y')
             time.sleep(2)
             self.serial.write('reboot')

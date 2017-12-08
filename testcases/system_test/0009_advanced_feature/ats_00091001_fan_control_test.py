@@ -15,7 +15,7 @@ class Test(common_methods.CommMethod):
 
     def run(self):
 
-        if self.serial.open() == 0:
+        if self.serial.open():
             speed = raw_input("请输入风扇速度：(1-99): ".decode('utf-8').encode(sys.getfilesystemencoding()))
             while speed.strip():
                 self.serial.write("fan_ctl -s %s" % (int(speed) % 100))

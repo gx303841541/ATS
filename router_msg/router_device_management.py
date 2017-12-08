@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-"""common methods
-by Kobe Gong 2017-11-27
-use:
-    methods in class CommMethod can be used by all the testcases
+"""
+msg for devece management
 """
 import re
 import sys

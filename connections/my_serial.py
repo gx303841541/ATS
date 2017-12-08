@@ -48,24 +48,28 @@ class MySerial():
         elif self.port == 'any' and port_list:
             self.port = port_list[0]
         else:
-            #self.LOG.error("Can't find any serial port!")
-            return 1
+            self.LOG.error("Can't find port: %s!" % self.port)
+            return False
 
         try:
             self.com = serial.Serial(
-                self.port, baudrate=self.baudrate, timeout=10)
+                self.port, baudrate=self.baudrate, timeout=1)
             if self.is_open():
+                self.send('\n')
+                self.send('root')
+                self.send('hdiotwzb100')
+                # a = self.readlines()
+                # self.LOG.debug(str(a))
                 self.LOG.debug("port: %s open success" % (self.port))
             else:
                 self.LOG.error("Can't open %s!" % (self.port))
-                return 1
+                return False
 
         except Exception as er:
             self.com = None
             self.LOG.error('Open %s fail!' % (self.port))
-            return 1
-
-        return 0
+            return False
+        return True
 
     def close(self):
         if type(self.com) != type(None):

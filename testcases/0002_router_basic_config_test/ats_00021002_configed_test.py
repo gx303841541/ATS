@@ -16,7 +16,7 @@ class Test(common_methods.CommMethod):
 
     def run(self):
 
-        if self.serial.open() == 0:
+        if self.serial.open():
             self.serial.write('echo -e "admin\nadmin" | passwd root')
         else:
             return self.case_fail("serial connect fail, please check serial connection!")

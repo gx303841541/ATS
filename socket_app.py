@@ -33,7 +33,7 @@ from basic.log_tool import MyLogger
 from basic.cprint import cprint
 import APIs.common_APIs as common_APIs
 from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output, protocol_data_printB
-import my_socket.my_socket as my_socket
+import connections.my_socket as my_socket
 
 # 命令行参数梳理， 目前仅有-p 指定串口端口号
 

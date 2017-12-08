@@ -19,7 +19,7 @@ import binascii
 from collections import defaultdict
 
 from APIs.common_APIs import crc, protocol_data_printB
-from my_serial.my_serial import MySerial
+from connections.my_serial import MySerial
 
 # 空调模拟器
 class Air():
@@ -226,7 +226,7 @@ class Air():
                 pass
             else:
                 self.logger.debug(self.port + ' try to open...')
-                if self.serial.open() == 0:
+                if self.serial.open():
                     self.set_state('open')
 
                     debug = 0

@@ -31,7 +31,7 @@ import APIs.common_APIs as common_APIs
 from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output, protocol_data_printB
 from protocol.air_control_sim import AirControl
 from protocol.protocol_process import PProcess
-import my_socket.my_socket as my_socket
+import connections.my_socket as my_socket
 
 # 命令行参数梳理，-t time interval; -u uuid
 class ArgHandle():

@@ -229,13 +229,10 @@ class MyCmd(Cmd):
                 cprint.error_p("No case found or something unknow happen!")
                 return 1
 
-            cases = re.split(r'\n(?=#)', log_list[0], re.S)
+            cases = re.split(r'[\r\n]+(?=#\d+)', log_list[0], maxsplit=0)
             #cases = re.findall(r'(#\d+\s+.*?[\r\n]+(?:ok|FAIL|ERROR))', log_list[0], re.S)
 
             cprint.debug_p('Total cases: ' + str(len(cases)))
-            for i in cases:
-                cprint.debug_p('\n\n\n')
-                cprint.warn_p(i)
 
             total_cases = 0
             pass_cases = 0

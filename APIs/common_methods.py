@@ -15,7 +15,7 @@ else:
     import Queue
 
 from basic.base import Base
-import my_socket.my_socket as my_socket
+import connections.my_socket as my_socket
 
 
 class CommMethod(Base):
@@ -87,7 +87,7 @@ class CommMethod(Base):
             result_dict[name] = value
 
         result_str = re.sub(r'\[\d+\.\d+\].*$', '', info_str, re.M)
-
+        self.LOG.debug(self.convert_to_dictstr(result_dict))
         return result_str, result_dict
 
     def get_router_db_info_dict(self, cmds, db='/db/iot_new_router.db', mode_line=True, separator='\n'):
@@ -231,6 +231,11 @@ class CommMethod(Base):
                         if isinstance(src_dict[item], dict):
                             if dict_modify(src_dict[item], dst_key):
                                 return True
+                        elif isinstance(src_dict[item], list):
+                            for i in src_dict[item]:
+                                if isinstance(i, dict):
+                                    if dict_modify(i, dst_key):
+                                        return True
                         else:
                             if item == dst_key and src_dict[dst_key] != 'no_need':
                                 src_dict[dst_key] = 'no_need'
@@ -242,6 +247,13 @@ class CommMethod(Base):
                     for item in src_dict:
                         if isinstance(src_dict[item], dict):
                             keys += find_from_dict(src_dict[item])
+                        elif isinstance(src_dict[item], list):
+                            for i in src_dict[item]:
+                                if isinstance(i, dict):
+                                    keys += find_from_dict(i)
+                                else:
+                                    if re.match(r'no_need', unicode(src_dict[item]), re.I):
+                                        keys.append(item)
                         else:
                             if re.match(r'no_need', unicode(src_dict[item]), re.I):
                                 keys.append(item)
@@ -255,7 +267,8 @@ class CommMethod(Base):
                 for k in keys:
                     for item in dst:
                         if isinstance(item, dict):
-                            dict_modify(item, k)
+                            if dict_modify(item, k):
+                                break
 
                 self.LOG.info(indent + '[')
                 check_list = []
@@ -357,6 +370,7 @@ class CommMethod(Base):
             result = dict_print(template, target)
             if not result:
                 self.LOG.error("template != target")
+
             return result
 
     def get_package_by_keyword(self, package_str, keyword_list, except_keyword_list=None, package_separator='\n'):

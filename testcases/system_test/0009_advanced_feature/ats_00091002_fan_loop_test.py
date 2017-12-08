@@ -15,7 +15,7 @@ class Test(common_methods.CommMethod):
 
     def run(self):
 
-        if self.serial.open() == 0:
+        if self.serial.open():
             speed = 0
             interval = 100
             #interval = raw_input("请输入风速变化间隔（单位ms）: ".decode('utf-8').encode(sys.getfilesystemencoding()))
