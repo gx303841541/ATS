@@ -470,6 +470,7 @@ class HtmlOutput(Plugin):
         if output is None:
             output = test.id()
         self.result.append((0, test, output, ''))
+        self.report(self.stream)
 
     def addError(self, test, err):
         output = test.shortDescription()
@@ -483,6 +484,7 @@ class HtmlOutput(Plugin):
             self.error_count += 1
             _exc_str = self.formatErr(err)
             self.result.append((2, test, output, _exc_str))
+        self.report(self.stream)
 
     def addFailure(self, test, err):
         self.failure_count += 1
@@ -491,6 +493,8 @@ class HtmlOutput(Plugin):
         if output is None:
             output = test.id()
         self.result.append((1, test, output, _exc_str))
+        self.report(self.stream)
+
 
     def formatErr(self, err):
         exctype, value, tb = err

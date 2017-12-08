@@ -10,7 +10,7 @@ import Queue
 
 from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
-import my_socket.my_socket as my_socket
+import connections.my_socket as my_socket
 
 @register_caseid(casename=__name__)
 class Test(common_methods.CommMethod):

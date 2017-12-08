@@ -8,11 +8,10 @@ import json
 import random
 import Queue
 import hashlib
-import winpexpect
 
 from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
-import my_socket.my_socket as my_socket
+import connections.my_socket as my_socket
 
 
 
