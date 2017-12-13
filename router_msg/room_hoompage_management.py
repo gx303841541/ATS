@@ -116,7 +116,7 @@ class API_room_homepage_management():
         return msg
 
     @staticmethod
-    def build_msg_update_main_switch_shortcut(common_para_dict, shortcut_id, shortcut_name, device_list):
+    def build_msg_update_main_switch_shortcut(common_para_dict, device_list):
         msg = {
             "uuid": "111",
             "encry": "false",
@@ -127,10 +127,6 @@ class API_room_homepage_management():
                 "params": {
             		"family_id": common_para_dict["family_id"],
             		"room_id": common_para_dict["room_id"],
-            		"user_id": common_para_dict["user_id"],
-                    "shortcut_id": shortcut_id,
-                    "name": shortcut_name,
-                    "device_category_id": -1,
                     "content": device_list
                 }
             }
@@ -152,15 +148,15 @@ class API_room_homepage_management():
             		"user_id": common_para_dict["user_id"],
             		"mode": "on",
             		"data": [{
-            			"method": "dm_set",
+            			"method": "dm_set_zigbee_bulb",
             			"req_id": 178237278,
             			"timestamp": 123456789,
             			"nodeid": "bulb.main.switch",
             			"params": {
-            				"user_id": common_para_dict["user_id"],
+            				"cmd": "setOnoff",
             				"device_uuid": common_para_dict["device_uuid"],
             				"attribute": {
-            					"switch": offon
+            					"mode": offon
             				}
             			}
             		}]
@@ -175,7 +171,7 @@ class API_room_homepage_management():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": " dm_set_light_control ",
+            	"method": "dm_set_light_control",
             	"req_id": 178237278,
             	"timestamp": 1498111457196,
             	"params": {
@@ -185,15 +181,15 @@ class API_room_homepage_management():
             		"mode": "on",
             		"level": 75,
             		"data": [{
-            			"method": "dm_set",
+            			"method": "dm_set_zigbee_bulb",
             			"req_id": 178237278,
             			"timestamp": 123456789,
             			"nodeid": "bulb.main.switch",
             			"params": {
-            				"user_id": common_para_dict["user_id"],
+            				"cmd": "setOnoff",
             				"device_uuid": common_para_dict["device_uuid"],
             				"attribute": {
-            					"switch": "on"
+            					"mode": offon
             				}
             			}
             		}]

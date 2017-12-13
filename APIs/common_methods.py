@@ -19,6 +19,7 @@ import connections.my_socket as my_socket
 
 
 class CommMethod(Base):
+    # convert str or dict object to beautiful str
     def convert_to_dictstr(self, src):
         if isinstance(src, dict):
             return json.dumps(src, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
@@ -30,10 +31,16 @@ class CommMethod(Base):
             self.LOG.error('Unknow type(%s): %s' % (src, str(type(src))))
             return None
 
+    # get info from router DB and write them to config.ini, this will auto exec only by the 1st case
     def update_db_info(self):
         if int(self.config_file.get("router_db", "update_flag")):
             pass
         else:
+            # 数据库清理
+            cmds = ['delete from TABLE_WIFI_DEVICE;',
+                    'delete from TABLE_ZIGBEE_DEVICE;']
+            result = self.get_router_db_info(cmds)
+
             # 数据库查询
             cmds = ['select * from table_user_list;',
                     'select * from table_family_list;']
@@ -50,7 +57,8 @@ class CommMethod(Base):
             # 数据库中存在相同key时，分开查询
             cmds = ['select * from table_router;']
             result = self.get_router_db_info(cmds)
-            self.config_file.set("router_db", "device_uuid", result[1]['device_uuid'])
+            self.config_file.set("router_db", "device_uuid",
+                                 result[1]['device_uuid'])
             self.config_file.set("router_db", "router_id", result[1]['id'])
             self.config_file.write(open(self.config_file_ori, "w"))
 
@@ -63,6 +71,7 @@ class CommMethod(Base):
             "router_id": self.config_file.get("router_db", "router_id"),
         }
 
+    # select router DB, will return a tuple(str, dict)
     def get_router_db_info(self, cmds, db='/db/iot_new_router.db', mode_line=True):
         if self.serial.is_open():
             pass
@@ -75,6 +84,7 @@ class CommMethod(Base):
 
         for cmd in cmds:
             self.serial.send(cmd)
+            self.LOG.info(cmd)
 
         self.serial.send('.exit')
         info_list = self.serial.readlines()
@@ -90,6 +100,7 @@ class CommMethod(Base):
         self.LOG.debug(self.convert_to_dictstr(result_dict))
         return result_str, result_dict
 
+    # select router DB, will return a dict
     def get_router_db_info_dict(self, cmds, db='/db/iot_new_router.db', mode_line=True, separator='\n'):
         result_list = []
         if self.serial.is_open():
@@ -120,9 +131,11 @@ class CommMethod(Base):
             self.LOG.warn('Read DB failed, no item found!')
         return result_list
 
+    # just as its name implies
     def json_items_compare(self, template_dict, target):
         return self.dict_items_compare(template_dict, json.loads(target))
 
+    # just as its name implies
     def dict_items_compare(self, template_dict, target):
         result = True
         if not isinstance(target, dict):
@@ -159,6 +172,7 @@ class CommMethod(Base):
                     result = False
         return result
 
+    # a sleep with a feedback func, if func return True, sleep will be interrupt
     def mysleep(self, timeout=1, feedback=None, *arg):
         counter = 0
         while True:
@@ -172,11 +186,13 @@ class CommMethod(Base):
                 counter += 1
                 time.sleep(1)
 
+    # just as its name implies
     def socket_send_to_router(self, data):
         if hasattr(self, 'client'):
             pass
         else:
-            self.client = my_socket.MyClient((self.config_file.get("network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
+            self.client = my_socket.MyClient((self.config_file.get(
+                "network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
 
         if self.client.is_connected() or self.client.connect():
             pass
@@ -187,11 +203,13 @@ class CommMethod(Base):
         self.client.send_once(data)
         return True
 
+    # just as its name implies
     def socket_recv_from_router(self, timeout=1, pkg_num=0):
         if self.client:
             pass
         else:
-            self.client = my_socket.MyClient((self.config_file.get("network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
+            self.client = my_socket.MyClient((self.config_file.get(
+                "network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
 
         data = ''
         if pkg_num == 0:
@@ -204,9 +222,11 @@ class CommMethod(Base):
                 data += self.client.recv_once(timeout)
         return data
 
+    # just as its name implies
     def json_compare(self, template, target):
         return self.dict_compare(template, json.loads(target))
 
+    # just as its name implies
     def dict_compare(self, template, target):
         if not isinstance(template, dict):
             self.LOG.error("template: %s is not dict instance!" %
@@ -373,6 +393,7 @@ class CommMethod(Base):
 
             return result
 
+    # just as its name implies
     def get_package_by_keyword(self, package_str, keyword_list, except_keyword_list=None, package_separator='\n'):
         if not len(package_str):
             self.LOG.warn("package str is empty!")

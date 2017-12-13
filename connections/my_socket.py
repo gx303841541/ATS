@@ -264,7 +264,7 @@ class MyClient:
                         self.LOG.yinfo(protocol_data_printB(
                             data, title="client send date:"))
                     else:
-                        self.LOG.yinfo("client send data: %s" % (data))
+                        self.LOG.yinfo("client send data: %s" % (repr(data)))
                 self.client.send(data.encode('utf-8'))
 
         except Exception as e:

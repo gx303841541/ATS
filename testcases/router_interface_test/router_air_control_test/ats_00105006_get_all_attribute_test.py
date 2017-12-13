@@ -9,13 +9,15 @@ import random
 
 from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
+import APIs.common_APIs as common_APIs
 from router_msg.router_device_management import API_device_management
+from router_msg.air_control import API_air_control
 
 @register_caseid(casename=__name__)
 class Test(common_methods.CommMethod):
     def run(self):
         # 数据库查询
-        result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE;'])
+        result = self.get_router_db_info(['select * from TABLE_WIFI_DEVICE;'])
         common_para_dict = {
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
@@ -27,11 +29,11 @@ class Test(common_methods.CommMethod):
         else:
             # add WIFI device
             # build msg
-            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=5)
+            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=1)
 
             # send msg to router
             if self.socket_send_to_router(json.dumps(msg) + '\n'):
-                self.ROBOT.led_access_net()
+                self.wifi.wifi_access_net()
                 def add_success():
                     ret = self.socket_recv_from_router(timeout=1)
                     if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
@@ -40,24 +42,24 @@ class Test(common_methods.CommMethod):
                         return 0
                 if self.mysleep(65, feedback=add_success):
                     self.LOG.info('Add device already success!')
-                    result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE;'])
+                    result = self.get_router_db_info(['select * from TABLE_WIFI_DEVICE;'])
                     common_para_dict['device_uuid'] = result[1]['device_uuid']
             else:
                 return self.case_fail("Send msg to router failed!")
 
         # build msg
-        msg = API_device_management.build_msg_delete_device(common_para_dict)
+        login_msg = API_air_control.build_msg_get_all_attribute(common_para_dict)
 
         # send msg to router
-        if self.socket_send_to_router(json.dumps(msg) + '\n'):
+        if self.socket_send_to_router(json.dumps(login_msg) + '\n'):
             pass
         else:
             return self.case_fail("Send msg to router failed!")
 
         # recv msg from router
-        data = self.socket_recv_from_router()
+        data = self.socket_recv_from_router(timeout=5)
         if data:
-            dst_package = self.get_package_by_keyword(data, ['dm_del_device', 'result'], except_keyword_list=['mdp_msg'])
+            dst_package = self.get_package_by_keyword(data, ['dm_get', 'success'])
             for msg in dst_package:
                 self.LOG.warn(self.convert_to_dictstr(msg))
             self.LOG.debug(self.convert_to_dictstr(dst_package[0]))
@@ -67,18 +69,24 @@ class Test(common_methods.CommMethod):
         # msg check
         template = {
             "content": {
-            	"code": 0,
-            	"msg": "success",
-            	"req_id": "no_need",
-            	"msg_tag": "no_need",
-            	"timestamp": "no_need",
-            	"method": "dm_del_device",
-            	"result": {
-            		"family_id": common_para_dict['family_id'],
-            		"device_id": "no_need",
-            		"user_id": common_para_dict['user_id']
-            	}
-            },
+                "code": 0,
+                "method": "dm_get",
+                "msg": "success",
+                "req_id": "no_need",
+                "result": {
+                    "attribute": {
+                        "mode": "no_need",
+                        "speed": "no_need",
+                        "switchStatus": "no_need",
+                        "temperature": "no_need",
+                        "wind_left_right": "no_need",
+                        "wind_up_down": "no_need",
+                    },
+                    "device_uuid": common_para_dict['device_uuid'],
+                    "user_id": -1
+                },
+                "timestamp": "no_need",
+        	},
             "encry": "no_need",
             "uuid": "no_need",
         }

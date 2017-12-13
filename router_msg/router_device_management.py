@@ -235,8 +235,6 @@ class API_device_management():
         msg = {
             "uuid": "111",
             "encry": "false",
-
-
             "content": {
                 "method": "dm_set_zigbee_bulb",
                 "req_id": 456,

@@ -56,7 +56,7 @@ BACKGROUND_WHITE = 0xf0  # white.
 
 
 class MyLogger:
-    def __init__(self, path, clevel=logging.DEBUG, cenable=True, flevel=logging.DEBUG, fenable=True, rlevel=logging.DEBUG, renable=True):
+    def __init__(self, path, clevel=logging.DEBUG, cenable=True, flevel=logging.DEBUG, fenable=True, rlevel=logging.DEBUG, renable=False):
         if sys.platform == 'linux':
             coloredlogs.install(level=clevel)
 
@@ -91,6 +91,7 @@ class MyLogger:
             self.p.addHandler(self.rh)
 
     def set_level(self, clevel=logging.DEBUG):
+        self.critical('Change log level to %s' % (str(clevel)))
         self.p.setLevel(clevel)
 
     def set_fmt(self, fmt = logging.Formatter('')):

@@ -51,7 +51,6 @@ class PProcess():
                                 self.LOG.error(protocol_data_printB(request_data, title='%s: got invalid data:' % (self.conn_dict[gay].name)))
                     else:
                         continue
-            # time.sleep(0.1)
 
     # 处理来包
     def protocol_handler(self, gay, data):

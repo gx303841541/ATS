@@ -40,7 +40,6 @@ class Suite():
         self.sub_suites = sub_suites
         self.fail_cases = []
         self.need_stop = False
-        self.suite_log_dir = self.__get_suite_dir()
 
     def __cmp__(self, other):
         if self.__eq__(other):
@@ -137,6 +136,7 @@ class Suite():
 
     def run(self):
         self.__clean_testlog()
+        self.suite_log_dir = self.__get_suite_dir()
         log_dir = self.suite_log_dir
         try:
             os.mkdir(log_dir)

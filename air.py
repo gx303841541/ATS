@@ -17,7 +17,6 @@ import signal
 import subprocess
 import argparse
 import logging
-import ConfigParser
 from cmd import Cmd
 import decimal
 
@@ -27,7 +26,8 @@ from basic.log_tool import MyLogger
 from basic.cprint import cprint
 import APIs.common_APIs as common_APIs
 from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output, protocol_data_printB
-from protocol.air_protocol import Protocol_proc, Air
+from protocol.air_protocol import Air
+from protocol.protocol_process import PProcess
 
 # 命令行参数梳理， 目前仅有-p 指定串口端口号
 class ArgHandle():
@@ -76,38 +76,11 @@ class ArgHandle():
 
 # CMD loop, 可以查看各个串口的消息统计
 class MyCmd(Cmd):
-    def __init__(self, coms_list):
+    def __init__(self, coms_list, logger=None):
         Cmd.__init__(self)
         self.prompt = "AIR>"
         self.coms_list = coms_list
-
-    def help_sts(self):
-        cprint.notice_p("show all msgs received!")
-
-    def do_sts(self, arg, opts=None):
-        msg_statistics = defaultdict(int)
-        for com in self.coms_list:
-            cprint.common_p(self.coms_list[com].port + ':')
-            msgs_dict = self.coms_list[com].get_msg_msg_statistics()
-            for msg in msgs_dict:
-                cprint.notice_p('\t' * 2 + msg + ': ' + str(msgs_dict[msg]))
-                msg_statistics[msg] += msgs_dict[msg]
-
-        cprint.debug_p('ALL' + ':')
-        for msg in msg_statistics:
-            cprint.notice_p('\t' * 2 + msg + ': ' + str(msg_statistics[msg]))
-
-    def help_st(self):
-        cprint.notice_p("show one port msg received!")
-
-    def do_st(self, arg, opts=None):
-        if re.match(r'^\d+$', arg) and arg in self.coms_list:
-            cprint.common_p(self.coms_list[arg].port + ':')
-            msgs_dict = self.coms_list[arg].get_msg_msg_statistics()
-            for msg in msgs_dict:
-                cprint.notice_p('\t' * 2 + msg + ': ' + str(msgs_dict[msg]))
-        else:
-            cprint.warning_p("unknow port: %s!" % (arg))
+        self.LOG = logger
 
     def help_send(self):
         cprint.notice_p("send sting to comx, 'all' mean to all")
@@ -120,6 +93,31 @@ class MyCmd(Cmd):
                     self.coms_list[com].queue_out.put(' '.join(args[1:]))
             else:
                 self.coms_list[args[0]].queue_out.put(' '.join(args[1:]))
+        else:
+            cprint.warn_p("unknow port: %s!" % (arg))
+
+    def help_log(self):
+        cprint.notice_p("change logger level: log {0:critical, 1:error, 2:warning, 3:info, 4:debug}")
+
+    def do_log(self, arg, opts=None):
+        level = {
+            '0': logging.CRITICAL,
+            '1': logging.ERROR,
+            '2': logging.WARNING,
+            '3': logging.INFO,
+            '4': logging.DEBUG,
+        }
+        if int(arg) in range(5):
+            self.LOG.set_level(level[arg])
+        else:
+            cprint.warn_p("unknow log level: %s!" % (arg))
+
+    def help_st(self):
+        cprint.notice_p("show air conditioner state")
+
+    def do_st(self, arg, opts=None):
+        if len(arg) and arg in self.coms_list:
+            self.coms_list[arg].show_state()
         else:
             cprint.warn_p("unknow port: %s!" % (arg))
 
@@ -137,6 +135,7 @@ class MyCmd(Cmd):
 
     def do_exit(self, arg, opts=None):
         cprint.notice_p("Exit CLI, good luck!")
+        sys_cleanup()
         sys.exit()
 
 
@@ -150,10 +149,12 @@ def sys_proc(action="default"):
     for th in thread_ids:
         th.setDaemon(True)
         th.start()
-        time.sleep(0.1)
+        # time.sleep(0.1)
 
-    # for th in thread_ids:
-    #    th.join()
+
+def sys_join():
+    for th in thread_ids:
+        th.join()
 
 
 # 系统初始化函数，在所有模块开始前调用
@@ -161,53 +162,52 @@ def sys_init():
     LOG.info("Let's go!!!")
 
 
-# 系统清理函数，系统推出前调用
+# 系统清理函数，系统退出前调用
 def sys_cleanup():
     LOG.info("Goodbye!!!")
 
 
-# 空调模拟程序入口
+# 主程序入口
 if __name__ == '__main__':
     # sys log init
-    LOG = MyLogger(__name__ + ".log", clevel=logging.DEBUG,
+    LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.DEBUG,
                    rlevel=logging.WARN)
     cprint = cprint(__name__)
+
+    # sys init
+    sys_init()
 
     # cmd arg init
     arg_handle = ArgHandle()
     arg_handle.run()
 
-    # sys init
-    sys_init()
-
     # multi thread
     global thread_list
     thread_list = []
+
+    # create serial objs
+    global coms_list
+    coms_list = {}
+    for com_id in arg_handle.get_args('port_list'):
+        coms_list[com_id] = Air('COM' + com_id, logger=LOG)
+        thread_list.append([coms_list[com_id].run_forever])
+
+    # create protocal handle obj
+    msg_proc = PProcess(coms_list, logger=LOG)
+    thread_list.append([msg_proc.run_forever])
+
+    # run threads
+    sys_proc()
+
     if arg_handle.get_args('cmdloop') or True:
-
-        # create serial objs
-        global coms_list
-        coms_list = {}
-        for com_id in arg_handle.get_args('port_list'):
-            coms_list[com_id] = Air('COM' + com_id, logger=LOG)
-            thread_list.append([coms_list[com_id].run_forever])
-
-        # create protocal handle obj
-        msg_proc = Protocol_proc(coms_list, logger=LOG)
-        thread_list.append([msg_proc.run_forever])
-
-        # run threads
-        sys_proc()
-
         # cmd loop
-        signal.signal(signal.SIGINT, lambda signal, frame: cprint.notice_p(
-            'Exit SYSTEM: exit'))
-        my_cmd = MyCmd(coms_list, )
+        signal.signal(signal.SIGINT, lambda signal, frame: cprint.notice_p('Exit SYSTEM: exit'))
+        my_cmd = MyCmd(coms_list, logger=LOG)
         my_cmd.cmdloop()
 
     else:
-        pass
+        sys_join()
 
-    # sys clean
-    sys_cleanup()
-    sys.exit()
+        # sys clean
+        sys_cleanup()
+        sys.exit()

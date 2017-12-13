@@ -107,6 +107,7 @@ class MyCmd(Cmd):
 
     def do_exit(self, arg, opts=None):
         cprint.notice_p("Exit CLI, good luck!")
+        sys_cleanup()
         sys.exit()
 
 
@@ -120,10 +121,12 @@ def sys_proc(action="default"):
     for th in thread_ids:
         th.setDaemon(True)
         th.start()
-        time.sleep(0.1)
+        # time.sleep(0.1)
 
-    # for th in thread_ids:
-    #    th.join()
+
+def sys_join():
+    for th in thread_ids:
+        th.join()
 
 
 # 系统初始化函数，在所有模块开始前调用
@@ -131,7 +134,7 @@ def sys_init():
     LOG.info("Let's go!!!")
 
 
-# 系统清理函数，系统推出前调用
+# 系统清理函数，系统退出前调用
 def sys_cleanup():
     LOG.info("Goodbye!!!")
 

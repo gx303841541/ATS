@@ -19,11 +19,13 @@ import serial.tools.list_ports
 
 
 class MySerial():
-    def __init__(self, port=None, baudrate=9600, logger=None):
+    def __init__(self, port=None, baudrate=9600, logger=None, user='root', password='hdiotwzb100'):
         self.LOG = logger
         self.port = port
         self.baudrate = baudrate
         self.com = None
+        self.user = user
+        self.password = password
         #self.LOG.debug("Create serial obj for : %s" % (port))
 
     def get_available_ports(self):
@@ -55,10 +57,12 @@ class MySerial():
             self.com = serial.Serial(
                 self.port, baudrate=self.baudrate, timeout=1)
             if self.is_open():
-                self.send('\n')
-                self.send('root')
-                self.send('hdiotwzb100')
-                # a = self.readlines()
+                self.write('\n')
+                self.write('\n')
+                self.write('\n')
+                self.send(self.user)
+                self.send(self.password)
+                #a = self.readlines()
                 # self.LOG.debug(str(a))
                 self.LOG.debug("port: %s open success" % (self.port))
             else:
@@ -123,7 +127,8 @@ class Robot():
         self.LOG = logger
         self.port = port
         self.baudrate = baudrate
-        self.serial = MySerial(port=self.port, baudrate=self.baudrate, logger=self.LOG)
+        self.serial = MySerial(
+            port=self.port, baudrate=self.baudrate, logger=self.LOG)
 
     def open(self, ):
         self.LOG.debug('To open robot...')
@@ -156,8 +161,8 @@ class Wifi():
         self.LOG = logger
         self.port = port
         self.baudrate = baudrate
-        self.serial = MySerial(port=self.port, baudrate=self.baudrate, logger=self.LOG)
-
+        self.serial = MySerial(
+            port=self.port, baudrate=self.baudrate, logger=self.LOG)
 
     def wifi_access_net(self, open_close_time=6):
         if not self.serial.is_open():
