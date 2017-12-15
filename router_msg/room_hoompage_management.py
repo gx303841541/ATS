@@ -126,6 +126,7 @@ class API_room_homepage_management():
                 "timestamp": 1498111457196,
                 "params": {
             		"family_id": common_para_dict["family_id"],
+                    "user_id": common_para_dict["user_id"],
             		"room_id": common_para_dict["room_id"],
                     "content": device_list
                 }

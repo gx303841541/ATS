@@ -16,7 +16,7 @@ else:
 
 from basic.base import Base
 import connections.my_socket as my_socket
-
+from router_msg.router_device_management import API_device_management
 
 class CommMethod(Base):
     # convert str or dict object to beautiful str
@@ -127,6 +127,7 @@ class CommMethod(Base):
                     tmp_dict[name] = value
                 if tmp_dict:
                     result_list.append(tmp_dict)
+            self.LOG.debug(self.convert_to_dictstr(tmp_dict))
         else:
             self.LOG.warn('Read DB failed, no item found!')
         return result_list
@@ -210,6 +211,11 @@ class CommMethod(Base):
         else:
             self.client = my_socket.MyClient((self.config_file.get(
                 "network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
+            if self.client.is_connected() or self.client.connect():
+                pass
+            else:
+                self.LOG.error("Connect to router failed!")
+                return False
 
         data = ''
         if pkg_num == 0:
@@ -248,7 +254,10 @@ class CommMethod(Base):
 
                 def dict_modify(src_dict, dst_key):
                     for item in src_dict:
-                        if isinstance(src_dict[item], dict):
+                        if item == dst_key and unicode(src_dict[dst_key]) != u'no_need':
+                            src_dict[dst_key] = 'no_need'
+                            return True
+                        elif isinstance(src_dict[item], dict):
                             if dict_modify(src_dict[item], dst_key):
                                 return True
                         elif isinstance(src_dict[item], list):
@@ -257,9 +266,7 @@ class CommMethod(Base):
                                     if dict_modify(i, dst_key):
                                         return True
                         else:
-                            if item == dst_key and src_dict[dst_key] != 'no_need':
-                                src_dict[dst_key] = 'no_need'
-                                return True
+                            continue
                     return False
 
                 def find_from_dict(src_dict):
@@ -419,3 +426,189 @@ class CommMethod(Base):
                 self.LOG.info('%d package left!' % (len(target_package_list)))
 
         return target_package_list
+
+    # delete all wifi devices
+    def delete_all_wifi_devices(self):
+        result = True
+        common_para_dict = {
+            "family_id": self.common_para_dict["family_id"],
+            "user_id": self.common_para_dict["user_id"],
+        }
+
+        # 数据库查询
+        devices = self.get_router_db_info_dict(
+            ['select * from TABLE_WIFI_DEVICE;'])
+
+        # delete WIFI device
+        for item in devices:
+            common_para_dict["device_uuid"] = item['device_uuid']
+
+            # build msg
+            msg = API_device_management.build_msg_delete_device(
+                common_para_dict)
+
+            # send msg to router
+            if self.socket_send_to_router(json.dumps(msg) + '\n'):
+                def del_success():
+                    ret = self.socket_recv_from_router(timeout=1)
+                    if self.get_package_by_keyword(ret, ['dm_del_device', 'success'], except_keyword_list=['mdp_msg']):
+                        return 1
+                    else:
+                        return 0
+                if self.mysleep(20, feedback=del_success):
+                    self.LOG.info('Delete device: %s success!' %
+                                  (common_para_dict["device_uuid"]))
+                else:
+                    self.LOG.warn('Delete device: %s fail!' %
+                                  (common_para_dict["device_uuid"]))
+                    result = False
+            else:
+                self.LOG.warn("Send msg to router failed!")
+                result = False
+        return result
+
+    # delete all zigbee devices
+    def delete_all_zigbee_devices(self):
+        result = True
+        common_para_dict = {
+            "family_id": self.common_para_dict["family_id"],
+            "user_id": self.common_para_dict["user_id"],
+        }
+
+        # 数据库查询
+        devices = self.get_router_db_info_dict(
+            ['select * from TABLE_ZIGBEE_DEVICE;'])
+
+        # delete ZIGBEE device
+        for item in devices:
+            common_para_dict["device_uuid"] = item['device_uuid']
+
+            # build msg
+            msg = API_device_management.build_msg_delete_device(
+                common_para_dict)
+
+            # send msg to router
+            if self.socket_send_to_router(json.dumps(msg) + '\n'):
+                def del_success():
+                    ret = self.socket_recv_from_router(timeout=1)
+                    if self.get_package_by_keyword(ret, ['dm_del_device', 'success'], except_keyword_list=['mdp_msg']):
+                        return 1
+                    else:
+                        return 0
+                if self.mysleep(20, feedback=del_success):
+                    self.LOG.info('Delete device: %s success!' %
+                                  (common_para_dict["device_uuid"]))
+                else:
+                    self.LOG.warn('Delete device: %s fail!' %
+                                  (common_para_dict["device_uuid"]))
+                    result = False
+            else:
+                self.LOG.warn("Send msg to router failed!")
+                result = False
+        return result
+
+    # delete one device
+    def delete_one_device(self, device_uuid):
+        result = True
+        common_para_dict = {
+            "family_id": self.common_para_dict["family_id"],
+            "user_id": self.common_para_dict["user_id"],
+            "device_uuid": device_uuid
+        }
+
+        # build msg
+        msg = API_device_management.build_msg_delete_device(common_para_dict)
+
+        # send msg to router
+        if self.socket_send_to_router(json.dumps(msg) + '\n'):
+            def del_success():
+                ret = self.socket_recv_from_router(timeout=1)
+                if self.get_package_by_keyword(ret, ['dm_del_device', 'success'], except_keyword_list=['mdp_msg']):
+                    return 1
+                else:
+                    return 0
+            if self.mysleep(20, feedback=del_success):
+                self.LOG.info('Delete device: %s success!' %
+                              (common_para_dict["device_uuid"]))
+            else:
+                self.LOG.warn('Delete device: %s fail!' %
+                              (common_para_dict["device_uuid"]))
+                result = False
+        else:
+            self.LOG.warn("Send msg to router failed!")
+            result = False
+        return result
+
+    # add one wifi device
+    def add_wifi_device(self, device_category_id, room_id=1):
+        result = True
+        common_para_dict = {
+            "family_id": self.common_para_dict["family_id"],
+            "user_id": self.common_para_dict["user_id"],
+            "room_id": room_id
+        }
+
+        for i in range(5):
+            # build msg
+            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=device_category_id)
+
+            # send msg to router
+            self.wifi.wifi_access_net()
+            if self.socket_send_to_router(json.dumps(msg) + '\n'):
+                def add_success():
+                    ret = self.socket_recv_from_router(timeout=1)
+                    if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
+                        return 1
+                    else:
+                        return 0
+                if self.mysleep(20, feedback=add_success):
+                    self.LOG.info('Add wifi device success!')
+                    time.sleep(1)
+                    info = self.get_router_db_info(['select * from TABLE_WIFI_DEVICE;'])
+                    result = info[1]['device_uuid']
+                else:
+                    self.LOG.warn('Add wifi device fail!')
+                    result = False
+            else:
+                self.case_fail("Send msg to router failed!")
+                result = False
+            if result:
+                break
+        return result
+
+    # add one zigbee device
+    def add_zigbee_device(self, device_category_id, room_id=1):
+        result = True
+        common_para_dict = {
+            "family_id": self.common_para_dict["family_id"],
+            "user_id": self.common_para_dict["user_id"],
+            "room_id": room_id
+        }
+
+        for i in range(5):
+            # build msg
+            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=device_category_id)
+
+            # send msg to router
+            self.robot.led_access_net(open_close_time=6+i)
+            if self.socket_send_to_router(json.dumps(msg) + '\n'):
+                def add_success():
+                    ret = self.socket_recv_from_router(timeout=1)
+                    if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
+                        return 1
+                    else:
+                        return 0
+                if self.mysleep(20, feedback=add_success):
+                    self.LOG.info('Add zigbee device success!')
+                    time.sleep(1)
+                    info = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE;'])
+                    result = info[1]['device_uuid']
+                else:
+                    self.LOG.warn('Add zigbee device fail!')
+                    result = False
+            else:
+                self.case_fail("Send msg to router failed!")
+                result = False
+            if result:
+                break
+        return result

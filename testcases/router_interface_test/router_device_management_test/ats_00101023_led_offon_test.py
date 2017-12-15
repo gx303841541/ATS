@@ -27,27 +27,12 @@ class Test(common_methods.CommMethod):
         if result and 'device_uuid' in result[1]:
             common_para_dict['device_uuid'] = result[1]['device_uuid']
         else:
-            # add WIFI device
-            # build msg
-            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=5)
-
-            # send msg to router
-            if self.socket_send_to_router(json.dumps(msg) + '\n'):
-                self.robot.led_access_net()
-                def add_success():
-                    ret = self.socket_recv_from_router(timeout=1)
-                    if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
-                        return 1
-                    else:
-                        return 0
-                if self.mysleep(65, feedback=add_success):
-                    self.LOG.info('Add device already success!')
-                    result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE;'])
-                    common_para_dict['device_uuid'] = result[1]['device_uuid']
-                else:
-                    return self.case_fail("Add device already fail!")
+            # add zigbee device
+            common_para_dict['device_uuid'] = self.add_zigbee_device(device_category_id=5, room_id=1)
+            if common_para_dict['device_uuid']:
+                pass
             else:
-                return self.case_fail("Send msg to router failed!")
+                return self.case_fail()
 
         # build msg
         login_msg = API_device_management.build_msg_login_router(self.common_para_dict["phone"], common_APIs.get_md5(self.config_file.get("app", "login_pwd")))
@@ -89,36 +74,43 @@ class Test(common_methods.CommMethod):
 
         # msg check
         template = {
-            "content": {
-            	"uuid": "111",
-            	"encry": "false",
-            	"content": {
-            		"method": "mdp_msg",
-            		"timestamp": "no_need",
-            		"req_id": "no_need",
-            		"params": {
-            			"msg_type": "R2F",
-            			"target_id": "no_need",
-            			"content": {
-            				"method": "report",
-            				"result": {
-            					"device_uuid": common_para_dict['device_uuid'],
-            					"attribute": {
-            						"temperature": "no_need",
-            						"r": "no_need",
-            						"g": "no_need",
-            						"b": "no_need",
-            						"mode": "no_need",
-            						"level": "no_need",
-            					}
-            				}
-            			}
-            		}
-            	}
-        	},
-            "encry": "no_need",
-            "uuid": "no_need",
+        	"uuid": "no_need",
+        	"encry": "no_need",
+        	"content": {
+        		"method": "mdp_msg",
+        		"timestamp": "no_need",
+        		"req_id": "no_need",
+        		"params": {
+        			"msg_type": "no_need",
+        			"target_id": "no_need",
+        			"content": {
+        				"method": "dr_report_dev_status",
+        				"result": {
+        					"timestamp": "no_need",
+        					"status_modified_at": "no_need",
+        					"family_id": "no_need",
+                            "device_id": "no_need",
+                            "device_uuid": "no_need",
+                            "device_category_id": "no_need",
+                            "updated_at": "no_need",
+        					"attribute": {
+        						"temperature": "no_need",
+        						"r": "no_need",
+        						"g": "no_need",
+        						"b": "no_need",
+        						"switch_status": "no_need",
+        						"level": "no_need",
+                                "connectivity": "no_need",
+                                "hue": "no_need",
+                                #"mode": "off",
+                                "saturation": "no_need",
+        					}
+        				}
+        			}
+        		}
+        	}
         }
+
         if self.json_compare(template, dst_package[0]):
             pass
         else:

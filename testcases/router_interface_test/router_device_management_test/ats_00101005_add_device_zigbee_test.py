@@ -14,33 +14,17 @@ from router_msg.router_device_management import API_device_management
 @register_caseid(casename=__name__)
 class Test(common_methods.CommMethod):
     def run(self):
-        # 数据库查询
-        devices = self.get_router_db_info_dict(['select * from TABLE_ZIGBEE_DEVICE;'])
         common_para_dict = {
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
             "room_id": 1
         }
 
-        # delete ZIGBEE device
-        for item in devices:
-            common_para_dict["device_uuid"] = item['device_uuid']
-
-            # build msg
-            msg = API_device_management.build_msg_delete_device(common_para_dict)
-
-            # send msg to router
-            if self.socket_send_to_router(json.dumps(msg) + '\n'):
-                def del_success():
-                    ret = self.socket_recv_from_router(timeout=1)
-                    if self.get_package_by_keyword(ret, ['dm_del_device', 'success'], except_keyword_list=['mdp_msg']):
-                        return 1
-                    else:
-                        return 0
-                if self.mysleep(65, feedback=del_success):
-                    self.LOG.info('Delete device already success!')
-            else:
-                return self.case_fail("Send msg to router failed!")
+        # delete all zigbee device
+        if self.delete_all_zigbee_devices():
+            pass
+        else:
+            return self.case_fail()
 
         # build msg
         msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=5)
@@ -52,7 +36,7 @@ class Test(common_methods.CommMethod):
             return self.case_fail("Send msg to router failed!")
 
         # recv msg from router
-        data = self.socket_recv_from_router(timeout=20)
+        data = self.socket_recv_from_router(timeout=60)
         if data:
             dst_package = self.get_package_by_keyword(data, ['dm_add_device', 'result'], except_keyword_list=['mdp_msg'])
             for msg in dst_package:

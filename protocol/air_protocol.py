@@ -77,7 +77,6 @@ class Air():
 
         # 字B：WORDB( 1 word )
         self._WORDB = b'\x00\x00'
-        self.LOG = logger
 
     # 存储空调设置温度
     def TEMP_set(self, word, ifprint=0):

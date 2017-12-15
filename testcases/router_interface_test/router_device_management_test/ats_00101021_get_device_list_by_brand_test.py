@@ -26,22 +26,10 @@ class Test(common_methods.CommMethod):
             pass
         else:
             # add WIFI device
-            # build msg
-            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=1)
-
-            # send msg to router
-            if self.socket_send_to_router(json.dumps(msg) + '\n'):
-                self.wifi.wifi_access_net()
-                def add_success():
-                    ret = self.socket_recv_from_router(timeout=1)
-                    if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
-                        return 1
-                    else:
-                        return 0
-                if self.mysleep(65, feedback=add_success):
-                    self.LOG.info('Add device already success!')
+            if self.add_wifi_device(device_category_id=1, room_id=1):
+                pass
             else:
-                return self.case_fail("Send msg to router failed!")
+                return self.case_fail()
 
         # build msg
         msg = API_device_management.build_msg_get_product_list(common_para_dict, brand='恒大', dev_type=1)

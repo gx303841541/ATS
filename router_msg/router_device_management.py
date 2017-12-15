@@ -231,6 +231,42 @@ class API_device_management():
         return msg
 
     @staticmethod
+    def build_msg_get_attribute_list_by_type(common_para_dict, type_id):
+        msg = {
+            "uuid": "111",
+            "encry": "false",
+            "content": {
+            	"method": "dm_get_dev_key_property",
+            	"timestamp": 1490229730,
+            	"req_id": 123,
+            	"params": {
+            		"family_id": common_para_dict["family_id"],
+            		"user_id": common_para_dict["user_id"],
+            		"type_id": type_id,
+            	}
+            }
+        }
+        return msg
+
+    @staticmethod
+    def build_msg_get_attribute_list_by_ID(common_para_dict, product_id):
+        msg = {
+            "uuid": "111",
+            "encry": "false",
+            "content": {
+            	"method": "dm_get_product_key_property",
+            	"timestamp": 1490229730,
+            	"req_id": 123,
+            	"params": {
+            		"family_id": common_para_dict["family_id"],
+            		"user_id": common_para_dict["user_id"],
+            		"product_id": product_id,
+            	}
+            }
+        }
+        return msg
+
+    @staticmethod
     def build_msg_led_control(common_para_dict, on_off):
         msg = {
             "uuid": "111",

@@ -135,8 +135,8 @@ class Robot():
         if not self.serial.is_open():
             self.serial.open()
             self.serial.read()
-        self.serial.write('O')
-        self.serial.read()
+        #self.serial.write('O')
+        #self.serial.read()
         self.serial.close()
 
     def close(self, ):
@@ -151,9 +151,7 @@ class Robot():
     def led_access_net(self, open_close_time=6):
         for i in range(open_close_time):
             self.open()
-            time.sleep(1)
-            self.close()
-            time.sleep(1)
+            time.sleep(1.5)
 
 
 class Wifi():

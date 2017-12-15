@@ -20,33 +20,21 @@ class Test(common_methods.CommMethod):
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
             "router_id": self.common_para_dict["router_id"],
-            "room_id": 1
         }
 
         if result and 'device_uuid' in result[1]:
             common_para_dict['device_uuid'] = result[1]['device_uuid']
             common_para_dict['device_id'] = int(result[1]['id'])
+            common_para_dict['room_id'] = int(result[1]['room_id'])
         else:
-            # add WIFI device
-            # build msg
-            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=5)
-
-            # send msg to router
-            if self.socket_send_to_router(json.dumps(msg) + '\n'):
-                self.robot.led_access_net()
-                def add_success():
-                    ret = self.socket_recv_from_router(timeout=1)
-                    if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
-                        return 1
-                    else:
-                        return 0
-                if self.mysleep(65, feedback=add_success):
-                    self.LOG.info('Add device already success!')
-                    result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE;'])
-                    common_para_dict['device_uuid'] = result[1]['device_uuid']
-                    common_para_dict['device_id'] = int(result[1]['id'])
+            # add device
+            common_para_dict['device_uuid'] = self.add_zigbee_device(device_category_id=5, room_id=1)
+            if common_para_dict['device_uuid']:
+                result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE;'])
+                common_para_dict['device_id'] = int(result[1]['id'])
+                common_para_dict['room_id'] = int(result[1]['room_id'])
             else:
-                return self.case_fail("Send msg to router failed!")
+                return self.case_fail()
 
         # build msg
         msg = API_device_management.build_msg_get_device_info(common_para_dict)
@@ -73,7 +61,6 @@ class Test(common_methods.CommMethod):
             	"method": "dm_get_device_info",
             	"timestamp": "no_need",
             	"req_id": "no_need",
-            	"msg_tag": "no_need",
             	"code": 0,
             	"msg": "success",
             	"result": {
@@ -85,7 +72,7 @@ class Test(common_methods.CommMethod):
             		"device_category_id": 5,
             		"created_at": "no_need",
             		"updated_at": "no_need",
-            		u"device_name": u"佛照射灯",
+            		"device_name": "no_need",
             		"default_device_name": "no_need",
             		"attribute":{
                         "b": "no_need",

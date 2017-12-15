@@ -26,24 +26,17 @@ class Test(common_methods.CommMethod):
             common_para_dict['device_uuid'] = result[1]['device_uuid']
         else:
             # add device
-            # build msg
-            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=5)
-
-            # send msg to router
-            if self.socket_send_to_router(json.dumps(msg) + '\n'):
-                self.ROBOT.led_access_net()
-                def add_success():
-                    ret = self.socket_recv_from_router(timeout=1)
-                    if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
-                        return 1
-                    else:
-                        return 0
-                if self.mysleep(65, feedback=add_success):
-                    self.LOG.info('Add device already success!')
-                    result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE;'])
-                    common_para_dict['device_uuid'] = result[1]['device_uuid']
+            common_para_dict['device_uuid'] = self.add_zigbee_device(device_category_id=5, room_id=1)
+            if common_para_dict['device_uuid']:
+                pass
             else:
-                return self.case_fail("Send msg to router failed!")
+                return self.case_fail()
+
+        common_para_dict = {
+            "family_id": 123,
+            "user_id": self.common_para_dict["user_id"],
+            "device_uuid": '123',
+        }
 
         # build msg
         msg = API_device_management.build_msg_delete_device(common_para_dict)
@@ -55,7 +48,7 @@ class Test(common_methods.CommMethod):
             return self.case_fail("Send msg to router failed!")
 
         # recv msg from router
-        data = self.socket_recv_from_router()
+        data = self.socket_recv_from_router(timeout=5)
         if data:
             dst_package = self.get_package_by_keyword(data, ['dm_del_device', 'result'], except_keyword_list=['mdp_msg'])
             for msg in dst_package:
@@ -67,16 +60,14 @@ class Test(common_methods.CommMethod):
         # msg check
         template = {
             "content": {
-            	"code": 0,
-            	"msg": "success",
-            	"req_id": "no_need",
-            	"msg_tag": "no_need",
-            	"timestamp": "no_need",
             	"method": "dm_del_device",
+            	"req_id": 'no_need',
+            	"timestamp": 'no_need',
+            	"msg": "family id not exist",
+            	"code": 'no_need',
             	"result": {
-            		"family_id": common_para_dict['family_id'],
-            		"device_id": "no_need",
-            		"user_id": common_para_dict['user_id']
+                    "user_id": self.common_para_dict["user_id"],
+                    "device_uuid": '123',
             	}
             },
             "encry": "no_need",

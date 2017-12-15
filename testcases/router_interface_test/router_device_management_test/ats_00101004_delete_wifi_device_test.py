@@ -17,12 +17,23 @@ class Test(common_methods.CommMethod):
         # 数据库查询
         result = self.get_router_db_info(['select * from TABLE_WIFI_DEVICE;'])
         common_para_dict = {
-            "family_id": 8888,
+            "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
+            "room_id": 1
         }
 
+        if result and 'device_uuid' in result[1]:
+            common_para_dict['device_uuid'] = result[1]['device_uuid']
+        else:
+            # add WIFI device
+            common_para_dict['device_uuid'] = self.add_wifi_device(device_category_id=1, room_id=2)
+            if common_para_dict['device_uuid']:
+                pass
+            else:
+                return self.case_fail()
+
         # build msg
-        msg = API_device_management.build_msg_get_device_type_by_family(common_para_dict)
+        msg = API_device_management.build_msg_delete_device(common_para_dict)
 
         # send msg to router
         if self.socket_send_to_router(json.dumps(msg) + '\n'):
@@ -33,7 +44,7 @@ class Test(common_methods.CommMethod):
         # recv msg from router
         data = self.socket_recv_from_router()
         if data:
-            dst_package = self.get_package_by_keyword(data, ['dm_get_family_dev_type_list', 'result'], except_keyword_list=['mdp_msg'])
+            dst_package = self.get_package_by_keyword(data, ['dm_del_device', 'result'], except_keyword_list=['mdp_msg'])
             for msg in dst_package:
                 self.LOG.warn(self.convert_to_dictstr(msg))
             self.LOG.debug(self.convert_to_dictstr(dst_package[0]))
@@ -43,12 +54,16 @@ class Test(common_methods.CommMethod):
         # msg check
         template = {
             "content": {
-                "method": "dm_get_family_dev_type_list",
+            	"code": 0,
+            	"msg": "success",
             	"req_id": "no_need",
             	"timestamp": "no_need",
-            	"msg": "internal error",
-            	"code": "no_need",
+            	"method": "dm_del_device",
             	"result": {
+            		"family_id": common_para_dict['family_id'],
+            		"device_id": "no_need",
+            		"user_id": common_para_dict['user_id'],
+                    'device_uuid': common_para_dict['device_uuid']
             	}
             },
             "encry": "no_need",

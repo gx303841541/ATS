@@ -52,27 +52,15 @@ class Test(common_methods.CommMethod):
             else:
                 return self.case_fail("Send msg to router failed!")
         else:
-            # add WIFI device
-            # build msg
-            msg = API_device_management.build_msg_add_device(common_para_dict, device_category_id=1)
-
-            # send msg to router
-            if self.socket_send_to_router(json.dumps(msg) + '\n'):
-                self.wifi.wifi_access_net()
-                def add_success():
-                    ret = self.socket_recv_from_router(timeout=1)
-                    if self.get_package_by_keyword(ret, ['dm_add_device', 'success'], except_keyword_list=['mdp_msg']):
-                        return 1
-                    else:
-                        return 0
-                if self.mysleep(65, feedback=add_success):
-                    self.LOG.info('Add device already success!')
-                    result = self.get_router_db_info(['select * from TABLE_WIFI_DEVICE;'])
-                    common_para_dict['device_uuid'] = result[1]['device_uuid']
-                    common_para_dict['room_id'] = int(result[1]['room_id'])
-                    device_name = result[1]['device_name']
+            # add device
+            common_para_dict['device_uuid'] = self.add_wifi_device(device_category_id=1, room_id=1)
+            if common_para_dict['device_uuid']:
+                result = self.get_router_db_info(['select * from TABLE_WIFI_DEVICE;'])
+                common_para_dict['device_id'] = int(result[1]['id'])
+                common_para_dict['room_id'] = int(result[1]['room_id'])
+                device_name = result[1]['device_name']
             else:
-                return self.case_fail("Send msg to router failed!")
+                return self.case_fail()
 
         # build msg
         new_name = str('路由器')

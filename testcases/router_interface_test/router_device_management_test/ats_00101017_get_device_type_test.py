@@ -51,105 +51,105 @@ class Test(common_methods.CommMethod):
                     "list": [
                         {
                             "created_at": "no_need",
-                            "type_id": 1,
+                            "id": 1,
                             "name": u"空调",
                             "order": 1,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 2,
+                            "id": 2,
                             "name": u"窗帘",
                             "order": 2,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 3,
+                            "id": 3,
                             "name": u"电视",
                             "order": 3,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 4,
+                            "id": 4,
                             "name": u"电饭煲",
                             "order": 4,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 5,
+                            "id": 5,
                             "name": u"灯",
                             "order": 5,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 6,
+                            "id": 6,
                             "name": u"电子秤",
                             "order": 6,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 7,
+                            "id": 7,
                             "name": u"摄像头",
                             "order": 7,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 8,
+                            "id": 8,
                             "name": u"智能开关",
                             "order": 8,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 9,
+                            "id": 9,
                             "name": u"空气质量检测仪",
                             "order": 9,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 10,
+                            "id": 10,
                             "name": u"温湿度计",
                             "order": 10,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 11,
+                            "id": 11,
                             "name": u"路由器",
                             "order": 11,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 12,
+                            "id": 12,
                             "name": u"门窗传感器",
                             "order": 12,
                             "updated_at": "no_need"
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 13,
-                            "name": u"人体传感器",
+                            "id": 13,
+                            "name": u"红外传感器",
                             "order": 13,
                             "updated_at": "no_need",
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 14,
+                            "id": 14,
                             "name": u"可视对讲",
                             "order": 14,
                             "updated_at": "no_need",
                         },
                         {
                             "created_at": "no_need",
-                            "type_id": 15,
+                            "id": 15,
                             "name": u"智能音箱",
                             "order": 15,
                             "updated_at": "no_need",
