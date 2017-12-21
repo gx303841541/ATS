@@ -166,3 +166,10 @@ def get_md5(strtext):
     m2 = hashlib.md5()
     m2.update(strtext)
     return str(m2.hexdigest())
+
+def find_max(str_list):
+    max_str = '0'
+    for item in str_list:
+        if int(item) > int(max_str):
+            max_str = item
+    return max_str

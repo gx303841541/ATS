@@ -64,7 +64,18 @@ class Test(common_methods.CommMethod):
                 "method": "dm_sort_shortcut",
                 "result": {
                     "user_id": common_para_dict["user_id"],
+                    "room_id": common_para_dict["room_id"],
                     "family_id": common_para_dict["family_id"],
+                    "list" : [
+                        {
+                            'shortcut_id': 1,
+                            'order': result12[1]['device_order']
+                        },
+                        {
+                            'shortcut_id': 2,
+                            'order': result11[1]['device_order']
+                        }
+                    ]
                 }
             },
             "encry": "no_need",

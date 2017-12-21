@@ -33,8 +33,69 @@ class API_air_control():
                 "nodeid": "airconditioner.main.mode",
                 "params": {
                     "device_uuid": common_para_dict['wifi_uuid'],
+                    "user_id": common_para_dict['user_id'],
                     "attribute": {
                         "mode": value,
+                    }
+                }
+            }
+        }
+        return msg
+
+    @staticmethod
+    def build_msg_air_temperature_set(common_para_dict, value, client_uuid="123"):
+        '''
+        :param common_para_dict:
+        :param client_uuid: APP client uuid
+        :return:
+        '''
+
+        method = 'dm_set'
+
+        msg = {
+            "uuid": client_uuid,
+            "encry": "false",
+            "content": {
+                "method": method,
+                "timestamp": 12345667,
+                "req_id": common_para_dict['req_id'],
+                "token": "",
+                "nodeid": "airconditioner.main.temperature",
+                "params": {
+                    "device_uuid": common_para_dict['wifi_uuid'],
+                    "user_id": common_para_dict['user_id'],
+                    "attribute": {
+                        "temperature": value,
+                    }
+                }
+            }
+        }
+        return msg
+
+    @staticmethod
+    def build_msg_air_speed_set(common_para_dict, value, client_uuid="123"):
+        '''
+        :param common_para_dict:
+        :param client_uuid: APP client uuid
+        :return:
+        '''
+
+        method = 'dm_set'
+
+        msg = {
+            "uuid": client_uuid,
+            "encry": "false",
+            "content": {
+                "method": method,
+                "timestamp": 12345667,
+                "req_id": common_para_dict['req_id'],
+                "token": "",
+                "nodeid": "airconditioner.main.speed",
+                "params": {
+                    "device_uuid": common_para_dict['wifi_uuid'],
+                    "user_id": common_para_dict['user_id'],
+                    "attribute": {
+                        "speed": value,
                     }
                 }
             }

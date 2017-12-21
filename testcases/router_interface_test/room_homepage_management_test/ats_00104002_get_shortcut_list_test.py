@@ -129,7 +129,7 @@ class Test(common_methods.CommMethod):
                             "shortcut_id": "no_need",
                             "room_id": 1,
                             "name": u"空调-风速",
-                            "device_category_id": 1,
+                            "device_category_id": -3,
                             "order": 3,
                             "content": [
                                 {

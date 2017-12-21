@@ -58,12 +58,12 @@ class Test(common_methods.CommMethod):
                             "device_category_id": 1,
                             "filter": [
                                 {
-                                    "property_id": 1,
+                                    "id": 1,
                                     "name": "temperature",
                                     "decription": u"温度"
                                 },
                                 {
-                                    "property_id": 2,
+                                    "id": 2,
                                     "name": "speed",
                                     "decription": u"风速"
                                 }

@@ -59,3 +59,5 @@ class Base(framework.TestCase):
         self.win_network = WinNetwork(self.config_file.get("network", "ssid"))
         self.robot = Robot(port=self.config_file.get("robot", "port"), baudrate=self.config_file.get("robot", "baudrate"), logger=self.LOG)
         self.wifi = Wifi(port=self.config_file.get("wifi", "port"), baudrate=self.config_file.get("wifi", "baudrate"), logger=self.LOG)
+
+        self.router_logged =False

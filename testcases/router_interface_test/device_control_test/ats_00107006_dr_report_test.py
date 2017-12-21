@@ -9,7 +9,10 @@ import random
 
 from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
+import APIs.common_APIs as common_APIs
 from router_msg.router_device_management import API_device_management
+from router_msg.device_control import API_device_control
+
 
 @register_caseid(casename=__name__)
 class Test(common_methods.CommMethod):
@@ -19,13 +22,14 @@ class Test(common_methods.CommMethod):
         common_para_dict = {
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
+            "router_id": self.common_para_dict["router_id"],
             "room_id": 1
         }
 
         if result and 'device_uuid' in result[1]:
             common_para_dict['device_uuid'] = result[1]['device_uuid']
         else:
-            # add device
+            # add zigbee device
             common_para_dict['device_uuid'] = self.add_zigbee_device(device_category_id=5, room_id=1)
             if common_para_dict['device_uuid']:
                 pass
@@ -33,7 +37,7 @@ class Test(common_methods.CommMethod):
                 return self.case_fail()
 
         # build msg
-        msg = API_device_management.build_msg_delete_device(common_para_dict)
+        msg = API_device_control.build_msg_led_switch(common_para_dict, on_off=random.choice(['off', 'on']))
 
         # send msg to router
         if self.socket_send_to_router(json.dumps(msg) + '\n'):
@@ -42,9 +46,9 @@ class Test(common_methods.CommMethod):
             return self.case_fail("Send msg to router failed!")
 
         # recv msg from router
-        data = self.socket_recv_from_router()
+        data = self.socket_recv_from_router(timeout=5)
         if data:
-            dst_package = self.get_package_by_keyword(data, ['dm_del_device', 'result'], except_keyword_list=['mdp_msg'])
+            dst_package = self.get_package_by_keyword(data, ['mdp_msg', 'report'])
             for msg in dst_package:
                 self.LOG.warn(self.convert_to_dictstr(msg))
             self.LOG.debug(self.convert_to_dictstr(dst_package[0]))
@@ -53,23 +57,42 @@ class Test(common_methods.CommMethod):
 
         # msg check
         template = {
-            "content": {
-            	"code": 0,
-            	"msg": "success",
-            	"req_id": "no_need",
-            	"msg_tag": "no_need",
-            	"timestamp": "no_need",
-            	"method": "dm_del_device",
-            	"result": {
-            		"family_id": common_para_dict['family_id'],
-            		"device_id": "no_need",
-                    "device_uuid": common_para_dict['device_uuid'],
-            		"user_id": common_para_dict['user_id']
-            	}
-            },
-            "encry": "no_need",
-            "uuid": "no_need",
+        	"uuid": "no_need",
+        	"encry": "no_need",
+        	"content": {
+        		"method": "mdp_msg",
+        		"timestamp": "no_need",
+        		"req_id": "no_need",
+        		"params": {
+        			"msg_type": "no_need",
+        			"target_id": "no_need",
+        			"content": {
+        				"method": "dr_report_dev_status",
+        				"result": {
+        					"timestamp": "no_need",
+        					"status_modified_at": "no_need",
+        					"family_id": "no_need",
+                            "device_id": "no_need",
+                            "device_uuid": "no_need",
+                            "device_category_id": "no_need",
+                            "updated_at": "no_need",
+        					"attribute": {
+        						"temperature": "no_need",
+        						"r": "no_need",
+        						"g": "no_need",
+        						"b": "no_need",
+        						"switch_status": "no_need",
+        						"level": "no_need",
+                                "connectivity": "no_need",
+                                "hue": "no_need",
+                                "saturation": "no_need",
+        					}
+        				}
+        			}
+        		}
+        	}
         }
+
         if self.json_compare(template, dst_package[0]):
             pass
         else:

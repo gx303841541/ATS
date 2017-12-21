@@ -43,12 +43,12 @@ class Test(common_methods.CommMethod):
             pass
         else:
             result = self.get_router_db_info(['select * from TABLE_DEVICE_SHORTCUTS where id = 2;'])
-        common_para_dict['shortcut_id'] = result[1]['device_order']
 
         # build msg
+        device_uuid = str(random.randint(10000000, 99999999))
         device_list = [
             {
-                "device_uuid": common_para_dict['device_uuid'],
+                "device_uuid": device_uuid,
                 "device_category_id": 5,
                 #"device_name": common_para_dict['name'].encode('utf-8'),
                 "device_name": 123,
@@ -75,7 +75,25 @@ class Test(common_methods.CommMethod):
         # msg check
         template = {
             "content": {
-
+                "method": "dm_update_shortcut",
+                "req_id": "no_need",
+                "timestamp": "no_need",
+                "msg": "success",
+                "code": 0,
+                "result": {
+                    "family_id": common_para_dict['family_id'],
+                    "user_id": common_para_dict['user_id'],
+                    "room_id": common_para_dict['room_id'],
+                    "shutcut_id": "no_need",
+                    "name": "no_need",
+                    "content": [
+                        {
+                            "device_uuid": device_uuid,
+                            "device_category_id": 5,
+                            "device_name": "no_need",
+                        }
+                    ]
+                }
             },
             "encry": "no_need",
             "uuid": "no_need",
@@ -84,8 +102,18 @@ class Test(common_methods.CommMethod):
             pass
         else:
             return self.case_fail("msg check failed!")
-        return self.case_pass()
 
+        # DB check
+        result = self.get_router_db_info(['select * from TABLE_DEVICE_SHORTCUTS where id = 1;'])
+        if 'name' in result[1] and result[1]['name'] == u'总开关':
+            pass
+        else:
+            result = self.get_router_db_info(['select * from TABLE_DEVICE_SHORTCUTS where id = 2;'])
+        if re.search(device_uuid, result[1]['attribute']):
+            pass
+        else:
+            return self.case_fail("DB check fail!")
+        return self.case_pass()
 
 if __name__ == '__main__':
     Test().test()

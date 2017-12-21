@@ -9,7 +9,10 @@ import random
 
 from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
+import APIs.common_APIs as common_APIs
 from router_msg.router_device_management import API_device_management
+from router_msg.device_control import API_device_control
+
 
 @register_caseid(casename=__name__)
 class Test(common_methods.CommMethod):
@@ -19,13 +22,14 @@ class Test(common_methods.CommMethod):
         common_para_dict = {
             "family_id": self.common_para_dict["family_id"],
             "user_id": self.common_para_dict["user_id"],
+            "router_id": self.common_para_dict["router_id"],
             "room_id": 1
         }
 
         if result and 'device_uuid' in result[1]:
             common_para_dict['device_uuid'] = result[1]['device_uuid']
         else:
-            # add device
+            # add zigbee device
             common_para_dict['device_uuid'] = self.add_zigbee_device(device_category_id=5, room_id=1)
             if common_para_dict['device_uuid']:
                 pass
@@ -33,20 +37,22 @@ class Test(common_methods.CommMethod):
                 return self.case_fail()
 
         # build msg
-        msg = API_device_management.build_msg_delete_device(common_para_dict)
+        msg = API_device_control.build_msg_subscribe()
 
         # send msg to router
         if self.socket_send_to_router(json.dumps(msg) + '\n'):
-            pass
+            time.sleep(5)
         else:
             return self.case_fail("Send msg to router failed!")
 
         # recv msg from router
-        data = self.socket_recv_from_router()
+        data = self.socket_recv_from_router(timeout=3)
         if data:
-            dst_package = self.get_package_by_keyword(data, ['dm_del_device', 'result'], except_keyword_list=['mdp_msg'])
-            for msg in dst_package:
-                self.LOG.warn(self.convert_to_dictstr(msg))
+            dst_package = self.get_package_by_keyword(data, ['dm_report_wan_speed'])
+            if 89 <= len(dst_package) <= 91:
+                pass
+            else:
+                return self.case_fail("dm_report_wan_speed number: %d" % len(dst_package))
             self.LOG.debug(self.convert_to_dictstr(dst_package[0]))
         else:
             return self.case_fail("timeout, server no response!")
@@ -54,19 +60,24 @@ class Test(common_methods.CommMethod):
         # msg check
         template = {
             "content": {
-            	"code": 0,
-            	"msg": "success",
-            	"req_id": "no_need",
-            	"msg_tag": "no_need",
-            	"timestamp": "no_need",
-            	"method": "dm_del_device",
-            	"result": {
-            		"family_id": common_para_dict['family_id'],
-            		"device_id": "no_need",
-                    "device_uuid": common_para_dict['device_uuid'],
-            		"user_id": common_para_dict['user_id']
-            	}
-            },
+                "method": "mdp_msg",
+                "params": {
+                    "content": {
+                        "method": "dm_report_wan_speed",
+                        "result": {
+                            "family_id": common_para_dict['family_id'],
+                            "attribute": {
+                                "up_speed": "no_need",
+                                "down_speed": "no_need",
+                            }
+                        }
+                    },
+                    "msg_type": "R2F",
+                    "target_id": "no_need",
+                },
+                "req_id": "no_need",
+                "timestamp": "no_need",
+        	},
             "encry": "no_need",
             "uuid": "no_need",
         }

@@ -53,7 +53,7 @@ class Test(common_methods.CommMethod):
                 "timestamp": "no_need",
                 "method": "dm_add_device",
                 "result": {
-                    "attribute": {},
+                    "attribute": "no_need",
                     "bussiness_user_id": 0,
                     "create_at": "no_need",
                     "device_category_id": 1,

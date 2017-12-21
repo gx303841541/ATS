@@ -16,7 +16,9 @@ else:
 
 from basic.base import Base
 import connections.my_socket as my_socket
+import APIs.common_APIs as common_APIs
 from router_msg.router_device_management import API_device_management
+from router_msg.router_management import API_router_management
 
 class CommMethod(Base):
     # convert str or dict object to beautiful str
@@ -39,7 +41,7 @@ class CommMethod(Base):
             # 数据库清理
             cmds = ['delete from TABLE_WIFI_DEVICE;',
                     'delete from TABLE_ZIGBEE_DEVICE;']
-            result = self.get_router_db_info(cmds)
+            #result = self.get_router_db_info(cmds)
 
             # 数据库查询
             cmds = ['select * from table_user_list;',
@@ -76,7 +78,7 @@ class CommMethod(Base):
         if self.serial.is_open():
             pass
         else:
-            self.serial.open()
+            self.serial.open(need_retry=True)
         self.serial.send('sqlite3 %s' % (db))
 
         if mode_line:
@@ -196,7 +198,28 @@ class CommMethod(Base):
                 "network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
 
         if self.client.is_connected() or self.client.connect():
-            pass
+            if self.router_logged:
+                pass
+            else:
+                # build msg
+                self.common_para_dict["req_id"] = 123
+                self.common_para_dict["pwd"] = common_APIs.get_md5(self.config_file.get("app", "login_pwd"))
+                login_msg = API_router_management.build_msg_app_login_info(self.common_para_dict)
+
+                # send msg to router
+                self.client.send_once(json.dumps(login_msg) + '\n')
+
+                # recv msg from router
+                msg = self.socket_recv_from_router()
+                if msg:
+                    dst_package = self.get_package_by_keyword(msg, ['um_login_pwd', 'success'])
+                    if dst_package:
+                        self.router_logged = True
+                        self.LOG.yinfo("Login router success!")
+                    else:
+                        self.LOG.error("Login router failed!")
+                else:
+                    return self.case_fail("timeout, server no response!")
         else:
             self.LOG.error("Connect to router failed!")
             return False
@@ -212,7 +235,28 @@ class CommMethod(Base):
             self.client = my_socket.MyClient((self.config_file.get(
                 "network", "host"), 5100), self.LOG, Queue.Queue(), Queue.Queue(), debug=True, printB=False)
             if self.client.is_connected() or self.client.connect():
-                pass
+                if self.router_logged:
+                    pass
+                else:
+                    # build msg
+                    self.common_para_dict["req_id"] = 123
+                    self.common_para_dict["pwd"] = common_APIs.get_md5(self.config_file.get("app", "login_pwd"))
+                    login_msg = API_router_management.build_msg_app_login_info(self.common_para_dict)
+
+                    # send msg to router
+                    self.client.send_once(json.dumps(login_msg) + '\n')
+
+                    # recv msg from router
+                    msg = self.socket_recv_from_router()
+                    if msg:
+                        dst_package = self.get_package_by_keyword(msg, ['um_login_pwd', 'success'])
+                        if dst_package:
+                            self.router_logged = True
+                            self.LOG.yinfo("Login router success!")
+                        else:
+                            self.LOG.error("Login router failed!")
+                    else:
+                        return self.case_fail("timeout, server no response!")
             else:
                 self.LOG.error("Connect to router failed!")
                 return False
@@ -612,3 +656,34 @@ class CommMethod(Base):
             if result:
                 break
         return result
+
+    # check log and get package info
+    def get_package_by_log_filter(self, method, role="tcp-server"):
+        if self.telnet.is_open():
+            pass
+        else:
+            self.telnet.connect()
+        info_str=self.telnet.send('cat /log/*|grep %s' %(method))
+        for item_info in info_str.split('\n'):
+            self.LOG.debug(item_info)
+            if re.search(role,item_info):
+                self.LOG.debug(item_info)
+                last_server_package=item_info
+        for item_package in last_server_package.split():
+            self.LOG.debug(item_package)
+            key_word="""{"method"""
+            self.LOG.debug('key_word='+key_word)
+            index=item_package.find(key_word,0)
+            if index != -1:
+                self.LOG.debug(item_package[index:])
+                return item_package[index:]
+        return False
+
+    # clear log, method get_package_by_log_filter will work with this before start test
+    def clear_log(self):
+        if self.telnet.is_open():
+            pass
+        else:
+            self.telnet.connect()
+        info_str=self.telnet.send('rm -f /log')
+        return True

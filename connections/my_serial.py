@@ -43,7 +43,7 @@ class MySerial():
 
         return r_port_list
 
-    def open(self):
+    def open(self, need_retry=False):
         port_list = self.get_available_ports()
         if self.port in port_list:
             pass
@@ -57,14 +57,22 @@ class MySerial():
             self.com = serial.Serial(
                 self.port, baudrate=self.baudrate, timeout=1)
             if self.is_open():
-                self.write('\n')
-                self.write('\n')
-                self.write('\n')
-                self.send(self.user)
-                self.send(self.password)
-                #a = self.readlines()
-                # self.LOG.debug(str(a))
-                self.LOG.debug("port: %s open success" % (self.port))
+                if need_retry:
+                    for i in range(5):
+                        self.write('\n')
+                        a = self.readlines()
+                        self.LOG.debug(str(a))
+                        if  re.search('root@OpenWrt:~# ',str(a)):
+                            break
+                        elif re.search('OpenWrt login: ',str(a)):
+                            self.send(self.user)
+                            a = self.readlines()
+                            self.LOG.debug(str(a))
+                            self.send(self.password)
+                            a = self.readlines()
+                            self.LOG.debug(str(a))
+                            self.LOG.debug("port: %s open success" % (self.port))
+                            break
             else:
                 self.LOG.error("Can't open %s!" % (self.port))
                 return False

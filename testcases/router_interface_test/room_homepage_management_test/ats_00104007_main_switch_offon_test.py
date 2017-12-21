@@ -96,7 +96,7 @@ class Test(common_methods.CommMethod):
         # DB check
         result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE where device_uuid = "%s";' % common_para_dict["device_uuid"]])
         if 'device_uuid' in result[1]:
-            if not re.search(r'mode":"off"', result[1]['attribute']):
+            if not re.search(r'switch_status":"off"', result[1]['attribute']):
                 return self.case_fail("Led off fail!")
         else:
             return self.case_fail("DB check fail!")
@@ -144,7 +144,7 @@ class Test(common_methods.CommMethod):
         # DB check
         result = self.get_router_db_info(['select * from TABLE_ZIGBEE_DEVICE where device_uuid = "%s";' % common_para_dict["device_uuid"]])
         if 'device_uuid' in result[1]:
-            if not re.search(r'mode":"on"', result[1]['attribute']):
+            if not re.search(r'switch_status":"on"', result[1]['attribute']):
                 return self.case_fail("Led on fail!")
         else:
             return self.case_fail("DB check fail!")

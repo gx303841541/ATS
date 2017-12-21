@@ -37,7 +37,9 @@ class AirControl():
         json_msg=json.loads(msg)
         if ((not 'content' in json_msg)
             or (not 'req_id' in json_msg['content'])
-            or (json_msg['content']['method'] == 'mdp_msg')):
+            or (json_msg['content']['method'] == 'um_login_pwd')
+            or (json_msg['content']['method'] == 'mdp_msg')
+            or not (json_msg['content']['req_id']) in self.msgst):
             return 'No_need_send'
 
         rece_time = datetime.datetime.now()
@@ -66,5 +68,6 @@ class AirControl():
             left_data = data
 
         if len(data_list) > 1 or left_data:
-            self.LOG.warn('packet splicing')
+            pass
+            # self.LOG.warn('packet splicing')
         return data_list, left_data

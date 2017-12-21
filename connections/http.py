@@ -185,17 +185,8 @@ class Http():
 
 if __name__ == '__main__':
     a = Http()
-    msg_on = {
-        "method": "getCurrentWanConfig",
-        "timestamp": 1490229730,
-        "req_id": 123,
-        "params": {
-            "family_id": 1,
-            "user_id": 123
-        }
-    }
 
-    s = a.send(msg_on)
+    s = a.setSSIDConfig_5G(ssid='BeeBox_1717', password='12345678')
     if s:
         print repr(s)
     else:

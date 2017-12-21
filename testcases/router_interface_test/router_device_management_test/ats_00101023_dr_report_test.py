@@ -11,6 +11,9 @@ from APIs.common_APIs import register_caseid
 import APIs.common_methods as common_methods
 import APIs.common_APIs as common_APIs
 from router_msg.router_device_management import API_device_management
+from router_msg.room_hoompage_management import API_room_homepage_management
+from router_msg.device_control import API_device_control
+
 
 @register_caseid(casename=__name__)
 class Test(common_methods.CommMethod):
@@ -35,26 +38,7 @@ class Test(common_methods.CommMethod):
                 return self.case_fail()
 
         # build msg
-        login_msg = API_device_management.build_msg_login_router(self.common_para_dict["phone"], common_APIs.get_md5(self.config_file.get("app", "login_pwd")))
-
-        # send msg to router
-        if self.socket_send_to_router(json.dumps(login_msg) + '\n'):
-            pass
-        else:
-            return self.case_fail("Send msg to router failed!")
-
-        # recv msg from router
-        data = self.socket_recv_from_router()
-        if data:
-            dst_package = self.get_package_by_keyword(data, ['um_login_pwd', 'success'])
-            for msg in dst_package:
-                self.LOG.warn(self.convert_to_dictstr(msg))
-            self.LOG.debug(self.convert_to_dictstr(dst_package[0]))
-        else:
-            return self.case_fail("timeout, server no response!")
-
-        # build msg
-        msg = API_device_management.build_msg_led_control(common_para_dict, on_off=random.choice(['off', 'on']))
+        msg = API_device_control.build_msg_led_switch(common_para_dict, on_off=random.choice(['off', 'on']))
 
         # send msg to router
         if self.socket_send_to_router(json.dumps(msg) + '\n'):
@@ -102,7 +86,6 @@ class Test(common_methods.CommMethod):
         						"level": "no_need",
                                 "connectivity": "no_need",
                                 "hue": "no_need",
-                                #"mode": "off",
                                 "saturation": "no_need",
         					}
         				}

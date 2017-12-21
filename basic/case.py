@@ -109,7 +109,7 @@ class Case():
         return 0
 
     def my_son(self, *arg):
-        grandson = threading.Thread(target=self.mu_grandson)
+        grandson = threading.Thread(target=self.my_grandson)
         grandson.setDaemon(True)
         grandson.start()
         while self.need_stop == False:
@@ -117,7 +117,7 @@ class Case():
             time.sleep(1)
         #self.cprint.yinfo_p("Oh, son stop!")
 
-    def mu_grandson(self, *arg):
+    def my_grandson(self, *arg):
         self.__clean_testlog()
         my_system_full_output(
             "nosetests {} -s --exe".format(self.get_case_dir() + self.get_case_name()))

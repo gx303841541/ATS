@@ -31,7 +31,7 @@ from APIs.common_APIs import my_system_no_check, my_system, my_system_full_outpu
 
 # ATS use this to manage a suite
 class Suite():
-    def __init__(self, config_file, id, name, cases, sub_suites):
+    def __init__(self, config_file, id, name, cases, sub_suites, dirstr):
         self.config_file = config_file
         self.cprint = cprint(__name__)
         self.id = id
@@ -40,6 +40,7 @@ class Suite():
         self.sub_suites = sub_suites
         self.fail_cases = []
         self.need_stop = False
+        self.dirstr = dirstr
 
     def __cmp__(self, other):
         if self.__eq__(other):
@@ -65,6 +66,9 @@ class Suite():
         else:
             return False
 
+    def __add__(self, other):
+        return Suite(self.config_file, self.id + other.id, self.name + '_' + other.name, self.cases + other.cases, self.sub_suites + other.sub_suites, dirstr=self.dirstr + ' ' + other.dirstr)
+
     def __clean_testlog(self):
         try:
             self.log_dir = self.config_file.get("system", "result_dir")
@@ -84,7 +88,7 @@ class Suite():
         return common_APIs.dirit(self.log_dir + dir_separator + 'tmp' + dir_separator)
 
     def __get_suite_dir(self):
-        suite_name = re.sub(r'^[A-Z]+:', '', self.name, re.S)
+        suite_name = self.name
         log_dir = self.config_file.get("system", "result_dir")
         dir_separator = os.path.sep
         log_dir += dir_separator + re.sub(r'%s+' % (re.escape(dir_separator)), '_', suite_name,
@@ -120,7 +124,7 @@ class Suite():
                     self.fail_cases.append(fail_cases)
 
     def my_son(self, *arg):
-        grandson = threading.Thread(target=self.mu_grandson)
+        grandson = threading.Thread(target=self.my_grandson)
         grandson.setDaemon(True)
         grandson.start()
         while self.need_stop == False:
@@ -128,9 +132,9 @@ class Suite():
             time.sleep(1)
         #self.cprint.yinfo_p("Oh, son stop!")
 
-    def mu_grandson(self, *arg):
-        cmd_result = my_system_no_check("nosetests -w {} -v -s --exe --with-id --with-xunit --xunit-file={} --with-html-output --html-out-file={} 2>{}".format(
-            self.get_suite_name(), self.suite_log_dir + 'result.xml', self.suite_log_dir + 'result.html', self.suite_log_dir + 'stdout.log'))
+    def my_grandson(self, *arg):
+        cmd_result = my_system_no_check("nosetests {} -v -s --exe --with-id --with-xunit --xunit-file={} --with-html-output --html-out-file={} 2>{}".format(
+        self.dirstr, self.suite_log_dir + 'result.xml', self.suite_log_dir + 'result.html', self.suite_log_dir + 'stdout.log'))
         self.need_stop = True
         #self.cprint.notice_p("Oh, grandson stop!")
 
@@ -141,7 +145,7 @@ class Suite():
         try:
             os.mkdir(log_dir)
         except Exception as er:
-            cprint.error_p(
+            self.cprint.error_p(
                 'Can not create log dir: %s\n[[%s]]' % (log_dir, str(er)))
             sys.exit()
 
@@ -161,7 +165,6 @@ class Suite():
             #self.cprint.warn_p("Oh, update stop flag!")
 
         common_APIs.dir_copy(self.__get_tmp_dir(), log_dir)
-        return log_dir
 
 
 if __name__ == '__main__':

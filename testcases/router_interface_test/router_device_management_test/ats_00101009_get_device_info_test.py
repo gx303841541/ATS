@@ -80,7 +80,7 @@ class Test(common_methods.CommMethod):
                         "g": "no_need",
                         "hue": "no_need",
                         "level": "no_need",
-                        "mode": "on",
+                        "switch_status" : 'on',
                         "r": "no_need",
                         "saturation": "no_need",
                         "temperature": "no_need"

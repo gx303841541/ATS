@@ -128,6 +128,7 @@ class API_room_homepage_management():
             		"family_id": common_para_dict["family_id"],
                     "user_id": common_para_dict["user_id"],
             		"room_id": common_para_dict["room_id"],
+                    "name": u"总开关",
                     "content": device_list
                 }
             }
@@ -149,15 +150,14 @@ class API_room_homepage_management():
             		"user_id": common_para_dict["user_id"],
             		"mode": "on",
             		"data": [{
-            			"method": "dm_set_zigbee_bulb",
+            			"method": "dm_set",
             			"req_id": 178237278,
             			"timestamp": 123456789,
             			"nodeid": "bulb.main.switch",
             			"params": {
-            				"cmd": "setOnoff",
             				"device_uuid": common_para_dict["device_uuid"],
             				"attribute": {
-            					"mode": offon
+            					"switch": offon
             				}
             			}
             		}]
@@ -182,15 +182,14 @@ class API_room_homepage_management():
             		"mode": "on",
             		"level": 75,
             		"data": [{
-            			"method": "dm_set_zigbee_bulb",
+            			"method": "dm_set",
             			"req_id": 178237278,
             			"timestamp": 123456789,
             			"nodeid": "bulb.main.switch",
             			"params": {
-            				"cmd": "setOnoff",
             				"device_uuid": common_para_dict["device_uuid"],
             				"attribute": {
-            					"mode": offon
+            					"switch": offon
             				}
             			}
             		}]

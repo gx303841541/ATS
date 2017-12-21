@@ -40,7 +40,6 @@ class ArgHandle():
 
     def build_option_parser(self, description):
         parser = argparse.ArgumentParser(description=description)
-
         parser.add_argument(
             '-t', '--time-interval',
             dest='time_interval',
@@ -49,7 +48,6 @@ class ArgHandle():
             type=int,
             help='time intervavl for msg send to router',
         )
-
         parser.add_argument(
             '-u', '--device-uuid',
             dest='device_uuid',
@@ -57,7 +55,6 @@ class ArgHandle():
             default='000e83c6c10000000000c85b765caf43',
             help='Specify device uuid',
         )
-
         parser.add_argument(
             '-c', '--send package number',
             dest='number_to_send',
@@ -65,6 +62,28 @@ class ArgHandle():
             default=5000,
             type=int,
             help='Specify how many package to send',
+        )
+        parser.add_argument(
+            '--password',
+            dest='router_password',
+            action='store',
+            default='123456',
+            help='Specify password to login router',
+        )
+        parser.add_argument(
+            '--user',
+            dest='router_username',
+            action='store',
+            default='13311223344',
+            help='Specify user to login router',
+        )
+        parser.add_argument(
+            '--device',
+            dest='device_type',
+            action='store',
+            choices={'air', 'led'},
+            default='air',
+            help='Specify device type',
         )
         return parser
 
@@ -139,7 +158,28 @@ def sys_cleanup():
     LOG.info("Goodbye!!!")
 
 
-def getMsgup(req_id, uuid):
+def login_router(phone, password):
+    msg = {
+        "uuid": "111",
+        "encry": "false",
+        "content": {
+            "method": "um_login_pwd",
+            "timestamp": 12345667,
+            "req_id": 123,
+            "params": {
+                "phone": phone,
+                "pwd": password,
+                "os_type": "Android",
+                "app_version":"v0.5",
+                "os_version":"android4.3",
+                "hardware_version":"Huawei"
+            }
+        }
+    }
+    return str(json.dumps(msg)) + '\n'
+
+
+def air_control_msg(req_id, uuid):
     temperature = random.randint(17, 30)
     msg_temp_up={
         "uuid": "111",
@@ -159,8 +199,29 @@ def getMsgup(req_id, uuid):
     }
     msg_temp_up['content']['req_id'] = req_id
     msg_temp_up['content']['params']['device_uuid'] = uuid
-    return str(json.dumps(msg_temp_up)) + '\n'
+    return json.dumps(msg_temp_up) + '\n'
 
+
+def led_control_msg(req_id, uuid, on_off, family_id=1, user_id=1):
+    msg = {
+        "uuid": "111",
+        "encry": "false",
+        "content": {
+            "method": "dm_set",
+            "req_id": req_id,
+            "timestamp":123456789,
+            "nodeid": "bulb.main.switch",
+            "params":{
+        		"family_id": family_id,
+        		"user_id": user_id,
+                "device_uuid": uuid,
+                "attribute":{
+                    "switch": on_off
+                }
+            }
+        }
+    }
+    return json.dumps(msg) + '\n'
 
 
 # 空调遥控器模拟程序入口
@@ -195,16 +256,72 @@ if __name__ == '__main__':
     sys_proc()
 
     try:
-        for i in range(arg_handle.get_args('number_to_send')):
-            while client.connected != True:
-                pass
-            #req_id = random.randint(100, 9999999)
-            req_id = i + 88000000
-            msg = getMsgup(req_id, arg_handle.get_args('device_uuid'))
-            air_control.msgst[req_id]['send_time'] = datetime.datetime.now()
-            air_control.queue_out.put(msg)
-            LOG.info("send: " + msg.strip())
-            time.sleep(arg_handle.get_args('time_interval') / 1000.0)
+        while client.connected != True:
+            pass
+        msg = login_router(arg_handle.get_args('router_username'), common_APIs.get_md5(arg_handle.get_args('router_password')))
+        LOG.info("To login router: " + msg.strip())
+        air_control.queue_out.put(msg)
+        login_flag = True
+        time.sleep(1)
+
+        if arg_handle.get_args('device_type') == 'air':
+            for i in range(arg_handle.get_args('number_to_send')):
+                req_id = i + 88000000
+                msg = air_control_msg(req_id, arg_handle.get_args('device_uuid'))
+                air_control.msgst[req_id]['send_time'] = datetime.datetime.now()
+                air_control.queue_out.put(msg)
+                LOG.info("send: " + msg.strip())
+                time.sleep(arg_handle.get_args('time_interval') / 1000.0)
+
+            while not air_control.queue_out.empty():
+                time.sleep(1)
+            time.sleep(5)
+
+            pkg_lost = 0
+            pkg_lost_list = []
+            min_delay = 8888888888
+            max_delay = 0
+            total_delay = 0
+            for item in air_control.msgst:
+                if 'delaytime' in air_control.msgst[item]:
+                    if air_control.msgst[item]['delaytime'] > max_delay:
+                        max_delay = air_control.msgst[item]['delaytime']
+                    if air_control.msgst[item]['delaytime'] < min_delay:
+                        min_delay = air_control.msgst[item]['delaytime']
+                    total_delay += air_control.msgst[item]['delaytime']
+                else:
+                    pkg_lost += 1
+                    pkg_lost_list.append(item)
+
+
+            LOG.info('Total package: %d' % len(air_control.msgst))
+            if pkg_lost_list:
+                LOG.error('Package with these ids have lost:')
+                for i in pkg_lost_list:
+                    LOG.warn('%d' % i)
+            LOG.error('Loss Rate: ' + "%.2f" % (pkg_lost * 100.0 / arg_handle.get_args('number_to_send')) + '%')
+            LOG.info('MAX delay time: %dms' % max_delay)
+            LOG.yinfo('MIN delay time: %dms' % min_delay)
+            LOG.info('Average delay time(%d / %d): %.2fms' % (total_delay, (len(air_control.msgst) - pkg_lost), (total_delay + 0.0) / (len(air_control.msgst) - pkg_lost)))
+
+        elif arg_handle.get_args('device_type') == 'led':
+            for i in range(arg_handle.get_args('number_to_send')):
+                req_id = i + 66000000
+                msg = led_control_msg(req_id, arg_handle.get_args('device_uuid'), 'on')
+                air_control.queue_out.put(msg)
+                LOG.info("send: " + msg.strip())
+                time.sleep(arg_handle.get_args('time_interval') / 1000.0)
+
+                req_id = i + 77000000
+                msg = led_control_msg(req_id, arg_handle.get_args('device_uuid'), 'off')
+                air_control.queue_out.put(msg)
+                LOG.info("send: " + msg.strip())
+                time.sleep(arg_handle.get_args('time_interval') / 1000.0)
+
+            while not air_control.queue_out.empty():
+                time.sleep(1)
+        else:
+            LOG.error('Not support device!')
 
     except KeyboardInterrupt:
         LOG.info('KeyboardInterrupt!')
@@ -213,34 +330,3 @@ if __name__ == '__main__':
     except Exception as e:
         LOG.error('something wrong!' + str(e))
         sys.exit()
-
-    while not air_control.queue_out.empty():
-        time.sleep(1)
-    time.sleep(5)
-
-    pkg_lost = 0
-    pkg_lost_list = []
-    min_delay = 8888888888
-    max_delay = 0
-    total_delay = 0
-    for item in air_control.msgst:
-        if 'delaytime' in air_control.msgst[item]:
-            if air_control.msgst[item]['delaytime'] > max_delay:
-                max_delay = air_control.msgst[item]['delaytime']
-            if air_control.msgst[item]['delaytime'] < min_delay:
-                min_delay = air_control.msgst[item]['delaytime']
-            total_delay += air_control.msgst[item]['delaytime']
-        else:
-            pkg_lost += 1
-            pkg_lost_list.append(item)
-
-
-    LOG.info('Total package: %d' % len(air_control.msgst))
-    if pkg_lost_list:
-        LOG.error('Package with these ids have lost:')
-        for i in pkg_lost_list:
-            LOG.warn('%d' % i)
-    LOG.error('Loss Rate: ' + "%.2f" % (pkg_lost * 100.0 / arg_handle.get_args('number_to_send')) + '%')
-    LOG.info('MAX delay time: %dms' % max_delay)
-    LOG.yinfo('MIN delay time: %dms' % min_delay)
-    LOG.info('Average delay time(%d / %d): %.2fms' % (total_delay, (len(air_control.msgst) - pkg_lost), (total_delay + 0.0) / (len(air_control.msgst) - pkg_lost)))

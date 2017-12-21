@@ -63,6 +63,7 @@ class Test(common_methods.CommMethod):
             	"code": 0,
             	"result": {
                     "user_id": common_para_dict['user_id'],
+                    "family_id": common_para_dict['family_id'],
             		"list": [{
             			"device_id": "no_need",
             			"device_uuid": "no_need",
@@ -116,6 +117,7 @@ class Test(common_methods.CommMethod):
             	"code": 0,
             	"result": {
                     "user_id": common_para_dict['user_id'],
+                    "family_id": common_para_dict['family_id'],
             		"list": [{
             			"device_id": "no_need",
             			"device_uuid": "no_need",

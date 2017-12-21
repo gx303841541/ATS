@@ -1,12 +1,14 @@
 
 import time
 import telnetlib
+import re
 
 #telnet to router
 class MyTelnet():
-    def __init__(self, host, user=None, logger=None):
+    def __init__(self, host,  user='root', password='hdiotwzb100', logger=None):
         self.host = host
         self.user = user
+        self.password = password
         self.LOG = logger
         self.conn = None
 
@@ -17,6 +19,10 @@ class MyTelnet():
         try:
             self.conn.open(self.host)
             time.sleep(1)
+            self.conn.read_until('OpenWrt login: ')
+            self.conn.write(self.user + '\n')
+            self.conn.read_until('Password: ')
+            self.conn.write(self.password + '\n')
             rd = self.conn.read_very_eager()
 
         except Exception as er:
@@ -51,6 +57,7 @@ class MyTelnet():
 
     def is_open(self):
         if self.conn:
-            return True
-        else:
-            return False
+            self.LOG.debug(str(self.conn.get_socket()))
+            if self.conn.get_socket():
+                return True
+        return False

@@ -5,20 +5,29 @@
 by Kobe Gong. 2017-10-23
 """
 
-import re
-import sys
-import time
-import os
-import shutil
+import argparse
 import datetime
+import decimal
+import logging
 import multiprocessing
+import os
 import random
+import re
+import shutil
 import signal
 import subprocess
-import argparse
-import logging
+import sys
+import time
 from cmd import Cmd
-import decimal
+from collections import defaultdict
+
+import APIs.common_APIs as common_APIs
+import my_socket.my_socket as my_socket
+from APIs.common_APIs import (my_system, my_system_full_output,
+                              my_system_no_check, protocol_data_printB)
+from basic.cprint import cprint
+from basic.log_tool import MyLogger
+
 if sys.platform == 'linux':
     import configparser as ConfigParser
     import queue as Queue
@@ -26,15 +35,10 @@ else:
     import ConfigParser
     import Queue
 
-from collections import defaultdict
-
-from basic.log_tool import MyLogger
-from basic.cprint import cprint
-import APIs.common_APIs as common_APIs
-from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output, protocol_data_printB
-import my_socket.my_socket as my_socket
 
 # 命令行参数
+
+
 class ArgHandle():
     def __init__(self):
         self.parser = self.build_option_parser("-" * 50)
@@ -46,7 +50,6 @@ class ArgHandle():
             action='store_true',
             help='whether go into cmd loop',
         )
-        return parser
         return parser
 
     def get_args(self, attrname):
@@ -137,17 +140,17 @@ if __name__ == '__main__':
     manager = multiprocessing.Manager()
     sum = manager.Value('tmp', 0)
 
-
     server = my_socket.MyServer(('', 8888), LOG, debug=True, singlethread=True)
     process_list.append([server.run_forever])
-    #process_list.append([server.sendloop])
+    # process_list.append([server.sendloop])
 
     # run threads
     sys_proc()
 
     if arg_handle.get_args('cmdloop'):
         # cmd loop
-        signal.signal(signal.SIGINT, lambda signal, frame: cprint.notice_p('Exit SYSTEM: exit'))
+        signal.signal(signal.SIGINT, lambda signal,
+                      frame: cprint.notice_p('Exit SYSTEM: exit'))
         my_cmd = MyCmd()
         my_cmd.cmdloop()
     else:

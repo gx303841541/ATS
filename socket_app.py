@@ -5,21 +5,30 @@
 by Kobe Gong. 2017-9-11
 """
 
-import re
-import sys
-import time
-import os
-import shutil
-import datetime
-import threading
-import random
-import signal
-import subprocess
 import argparse
-import logging
-from cmd import Cmd
+import datetime
 import decimal
 import json
+import logging
+import os
+import random
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import threading
+import time
+from cmd import Cmd
+from collections import defaultdict
+
+import APIs.common_APIs as common_APIs
+import connections.my_socket as my_socket
+from APIs.common_APIs import (my_system, my_system_full_output,
+                              my_system_no_check, protocol_data_printB)
+from basic.cprint import cprint
+from basic.log_tool import MyLogger
+
 if sys.platform == 'linux':
     import configparser as ConfigParser
     import queue as Queue
@@ -27,13 +36,6 @@ else:
     import ConfigParser
     import Queue
 
-from collections import defaultdict
-
-from basic.log_tool import MyLogger
-from basic.cprint import cprint
-import APIs.common_APIs as common_APIs
-from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output, protocol_data_printB
-import connections.my_socket as my_socket
 
 # 命令行参数梳理， 目前仅有-p 指定串口端口号
 
@@ -159,8 +161,8 @@ def getMsgup(req_id, uuid):
         "uuid": "111",
         "encry": "false",
         "content": {
-            "method": "dm_set",
-            "req_id": 113468,
+                "method": "dm_set",
+                "req_id": 113468,
             "token": "",
             "nodeid": "airconditioner.main.temperature",
             "params": {
@@ -182,7 +184,7 @@ if __name__ == '__main__':
     # sys log init
     LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.DEBUG,
                    rlevel=logging.WARN)
-    cprint = cprint(__name__)
+    cprint = cprint(os.path.abspath(sys.argv[0]).replace('py', 'log'))
 
     # cmd arg init
     arg_handle = ArgHandle()
