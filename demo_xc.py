@@ -6,12 +6,11 @@ by Kobe Gong. 2017-12-21
 """
 import argparse
 import asyncio
-import ConfigParser
+
 import datetime
 import decimal
 import logging
 import os
-import Queue
 import random
 import re
 import shutil
@@ -20,16 +19,22 @@ import subprocess
 import sys
 import threading
 import time
+import functools
 from cmd import Cmd
 from collections import defaultdict
 
 import APIs.common_APIs as common_APIs
-import my_socket.my_socket as my_socket
+import connections.my_socket as my_socket
 from APIs.common_APIs import (my_system, my_system_full_output,
 							  my_system_no_check, protocol_data_printB)
 from basic.cprint import cprint
 from basic.log_tool import MyLogger
-
+if sys.platform == 'linux':
+	import configparser as ConfigParser
+	import queue as Queue
+else:
+	import ConfigParser
+	import Queue
 # cmd line arg handler
 
 
@@ -97,8 +102,6 @@ def sys_init():
 
 
 def sys_cleanup():
-	for th in thread_ids:
-		th.close()
 	LOG.info("Goodbye!!!")
 
 
@@ -106,10 +109,18 @@ def sys_cleanup():
 def sys_run():
 	event_loop = asyncio.get_event_loop()
 	state = event_loop.is_running()
-	if state:
-		cprint.notice_p('loop is runing')
-	else:
-		cprint.notice_p('loop is stop')
+
+	def hello_word():
+		cprint.debug_p('hello word')
+
+	@asyncio.coroutine
+	def stop_loop():
+		cprint.debug_p('stop loop')
+
+	event_loop.call_soon(hello_word)
+	event_loop.call_soon(hello_word)
+	event_loop.run_until_complete(stop_loop())
+	#event_loop.run_forever()
 
 	if arg_handle.get_args('cmdloop'):
 		# cmd loop
@@ -119,7 +130,6 @@ def sys_run():
 		my_cmd.cmdloop()
 	else:
 		pass
-
 
 
 # 主程序入口
