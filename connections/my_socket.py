@@ -5,22 +5,25 @@
    by Kobe Gong. 2017-9-29
 """
 
-import time
-import sys
-import re
+import datetime
 import os
 import random
-import datetime
-import socket
+import re
 import select
+import socket
+import sys
 import threading
+import time
+
+import APIs.common_APIs as common_APIs
+from APIs.common_APIs import protocol_data_printB
+from basic.log_tool import MyLogger
+
 if sys.platform == 'linux':
     import queue as Queue
 else:
     import Queue
 
-from basic.log_tool import MyLogger
-from APIs.common_APIs import protocol_data_printB
 
 BUFF_SIZE = 512
 
@@ -54,8 +57,10 @@ class MyServer:
         try:
             while True:
                 if self.debug:
-                    self.LOG.debug("Waiting for next event, now has active clients: %d" % (len(self.clients)))
-                readable, writable, exceptional = select.select(self.inputs, [], [], timeout)
+                    self.LOG.debug(
+                        "Waiting for next event, now has active clients: %d" % (len(self.clients)))
+                readable, writable, exceptional = select.select(
+                    self.inputs, [], [], timeout)
                 for conn in readable:
                     if conn == self.server:
                         try:
@@ -80,7 +85,8 @@ class MyServer:
                         try:
                             data = conn.recv(BUFF_SIZE)
                             if data:
-                                self.clients[self.conn_to_addr[conn]]['queue_in'].put(data)
+                                self.clients[self.conn_to_addr[conn]
+                                             ]['queue_in'].put(data)
                                 if self.debug:
                                     if self.printB:
                                         self.LOG.info(protocol_data_printB(
@@ -92,7 +98,8 @@ class MyServer:
                                 # Interpret empty result as closed connection
                                 self.LOG.error(
                                     self.conn_to_addr[conn][0] + ' closed!')
-                                self.clients[self.conn_to_addr[conn]]['conn'].close()
+                                self.clients[self.conn_to_addr[conn]
+                                             ]['conn'].close()
                                 self.inputs.remove(conn)
                                 del self.clients[self.conn_to_addr[conn]]
                                 del self.conn_to_addr[conn]
@@ -136,7 +143,8 @@ class MyServer:
                 if self.clients[self.conn_to_addr[client]]['queue_out'].empty():
                     pass
                 else:
-                    data = self.clients[self.conn_to_addr[client]]['queue_out'].get()
+                    data = self.clients[self.conn_to_addr[client]
+                                        ]['queue_out'].get()
                     client.send(data.encode('utf-8'))
                     if self.debug:
                         if self.printB:
@@ -156,27 +164,25 @@ class MyServer:
 
 
 class MyClient:
-    def __init__(self, addr, logger, queue_in, queue_out, heartbeat=0, heartbeat_data='1\n', debug=False, singlethread=True, printB=False):
-        self.queue = {
-            'queue_in': queue_in,
-            'queue_out': queue_out,
-        }
+    state_lock = threading.Lock()
+
+    def __init__(self, addr, logger, debug=False, printB=False):
         self.client = ''
         self.addr = addr
         self.LOG = logger
         self.connected = False
-        self.heartbeat = heartbeat
-        self.heartbeat_data = heartbeat_data
         self.debug = debug
-        self.singlethread = singlethread
         self.printB = printB
 
-    def is_connected(self):
+    def get_connected(self):
         return self.connected
+
+    @common_APIs.need_add_lock(state_lock)
+    def set_connected(self, value):
+        self.connected = value
 
     def run_forever(self, *arg):
         while True:
-            # wait for connection setup
             while self.connected == False:
                 if self.connect():
                     pass
@@ -194,31 +200,29 @@ class MyClient:
         try:
             self.client.connect(self.addr)
             self.LOG.info("Connection setup suceess!")
-            while not self.queue['queue_in'].empty():
-                self.queue['queue_in'].get_nowait()
-
-            while not self.queue['queue_out'].empty():
-                self.queue['queue_out'].get_nowait()
-
-            self.connected = True
-            return 1
+            self.set_connected(True)
+            return True
         except:
             self.LOG.warn("Connect to server failed, wait 1s...")
-            return 0
+            return False
+
+    def close(self):
+        return self.client.close()
 
     def recv_once(self, timeout=1):
-        data = ''
-        readable, writable, exceptional = select.select(
-            self.inputs, [], self.inputs, timeout)
+        try:
+            if not self.get_connected():
+                return
+            data = ''
+            readable, writable, exceptional = select.select(
+                self.inputs, [], self.inputs, timeout)
 
-        # When timeout reached , select return three empty lists
-        if not (readable):
-            pass
-        else:
-            try:
+            # When timeout reached , select return three empty lists
+            if not (readable):
+                pass
+            else:
                 data = self.client.recv(BUFF_SIZE)
                 if data:
-                    self.queue['queue_in'].put(data)
                     if self.debug:
                         if self.printB:
                             self.LOG.info(protocol_data_printB(
@@ -230,46 +234,33 @@ class MyClient:
                     self.LOG.error("Server maybe has closed!")
                     self.client.close()
                     self.inputs.remove(self.client)
-                    self.connected = False
+                    self.set_connected(False)
+            return data
 
-            except socket.error:
-                self.LOG.error("socket error, don't know why.")
-                self.client.close()
-                self.inputs.remove(self.client)
-                self.connected = False
-        return data
+        except socket.error:
+            self.LOG.error("socket error, don't know why.")
+            self.client.close()
+            self.inputs.remove(self.client)
+            self.set_connected(False)
 
-    def sendloop(self, *arg):
-        while True:
-            if self.connected == True:
-                self.send_once()
-            else:
-                pass
-
-    def send_once(self, data=None):
+    def send_once(self, data=None, need_encode=False):
         try:
-            if data:
-                self.queue['queue_out'].put(data)
-
-            if self.queue['queue_out'].empty():
-                if self.heartbeat:
-                    time.sleep(self.heartbeat)
-                    self.queue['queue_out'].put(self.heartbeat_data)
+            if not self.get_connected():
+                return
+            if self.debug:
+                if self.printB:
+                    self.LOG.yinfo(protocol_data_printB(
+                        data, title="client send date:"))
                 else:
-                    pass
-            else:
-                data = self.queue['queue_out'].get()
-                if self.debug:
-                    if self.printB:
-                        self.LOG.yinfo(protocol_data_printB(
-                            data, title="client send date:"))
-                    else:
-                        self.LOG.yinfo("client send data: %s" % (repr(data)))
+                    self.LOG.yinfo("client send data: %s" % (repr(data)))
+            if need_encode:
                 self.client.send(data.encode('utf-8'))
+            else:
+                self.client.send(data)
 
         except Exception as e:
             self.LOG.error(
                 "send data fail, Server maybe has closed![%s]" % (str(e)))
             self.client.close()
             self.inputs.remove(self.client)
-            self.connected = False
+            self.set_connected(False)

@@ -5,6 +5,7 @@
 by Kobe Gong. 2017-9-13
 """
 
+import threading
 import os
 import logging
 import datetime
@@ -17,23 +18,24 @@ from abc import ABCMeta, abstractmethod
 import binascii
 
 from collections import defaultdict
-
+import APIs.common_APIs as common_APIs
 from APIs.common_APIs import crc, protocol_data_printB
 from connections.my_serial import MySerial
+from protocol.protocol_process import communication_base_obj
 
 # 空调模拟器
-class Air():
-    def __init__(self, port=None, baudrate=9600, logger=None):
-        self.port = port
-        self.serial = MySerial(port, baudrate, logger)
-        self.queue_in = Queue.Queue()
-        self.queue_out = Queue.Queue()
 
+
+class Air(communication_base_obj):
+    state_lock = threading.Lock()
+    def __init__(self, port=None, baudrate=9600, logger=None):
+        super(Air, self).__init__(queue_in=Queue.Queue(),
+                                  queue_out=Queue.Queue(), logger=logger, left_data='', min_length=13)
+        self.port = port
+        self.name = port
+        self.serial = MySerial(port, baudrate, logger)
         self.msg_statistics = defaultdict(int)
         self.state = 'close'
-        self.LOG = logger
-        self.left_data = ''
-        self.min_length = 13
 
         # 当前温度 1word
         self._TEMP = b'\x00\x00'
@@ -203,7 +205,6 @@ class Air():
         temp2 = temp2 & ~(1 << bit)
         return struct.pack('BB', temp2 >> 8, temp2 % 256)
 
-    # 生成空调返回给模块的消息
     def msg_build(self):
         data = (self._TEMP + self._HHON + self._MMON + self._HHOFF + self._MMOFF
                 + self._MODE + self._WIND + self._SOLLDH + self._WORDA + self._WORDB + self._HUMSD + self._STEMP)
@@ -223,76 +224,6 @@ class Air():
         answer += crc(answer[2:])
         return answer
 
-    def run_forever(self):
-        while True:
-            if self.serial.is_open():
-                # self.queue_in.put(b'\xff\xff\x0a\x00\x00\x00\x00\x00\x00\x01\x4d\x01\x59')
-                pass
-            else:
-                self.LOG.warn(self.port + ' try to open...')
-                if self.serial.open():
-                    self.set_state('open')
-
-                    debug = 0
-                    if debug:
-                        self.queue_in.put(
-                            b'\xFF\xFF\x0c\x00\x00\x00\x00\x00\x01\x01\x4d\x24\x00\x01\x80')
-                        self.queue_in.put(
-                            b'\xff\xff\x0c\x00\x00\x00\x00\x00\x00\x01\x5d\x01\x00')
-                        if self.port == 'COM7':
-                            self.queue_in.put(
-                                b'\x0c\x77\xff\xff\x0a\x00\x00\x00\x00\x00\x00\x01\x4d\x01\x59')
-                        else:
-                            self.queue_in.put(
-                                b'\x0d\x78\xff\xff\x0a\x00\x00\x00\x00\x00\x00\x01\x4d\x01\x59')
-                        self.queue_in.put(
-                            b'\xff\xff\x0a\x00\x00\x00\x00\x00\x00\x01\x4d\x01\x59')
-                        debug = 0
-
-                else:
-                    self.LOG.warn(self.port + " can't open!")
-                    time.sleep(30)
-                    continue
-
-            # receive data from module
-            if self.serial.readable():
-                datas = ''
-                data = self.serial.readall()
-                while data:
-                    datas += data
-                    data = self.serial.readall()
-
-                if datas:
-                    self.queue_in.put(datas)
-                    self.LOG.info(protocol_data_printB(
-                        datas, title=self.port + " recv data:"))
-                else:
-                    #self.LOG.warn('No data receive...')
-                    pass
-            else:
-                self.set_state('close')
-                self.LOG.error('%s can not read, close it!' % (self.port))
-                self.serial.close()
-
-            # send data to module
-            if self.queue_out.empty():
-                #self.LOG.warn('No data need send')
-                pass
-            else:
-                while not self.queue_out.empty():
-                    data = self.queue_out.get()
-                    self.LOG.yinfo(protocol_data_printB(
-                        data, title=self.port + " send data:"))
-                    self.serial.write(data)
-
-            # time.sleep(1)
-
-    def get_state(self):
-        return self.state
-
-    def set_state(self, new_state):
-        self.state = new_state
-
     def update_msg_statistics(self, data):
         self.msg_statistics[data] += 1
 
@@ -307,7 +238,8 @@ class Air():
         else:
             temp1 = struct.unpack('BB', self._TEMP)
             temp2 = temp1[0] * 256 + temp1[1] + 16
-        self.LOG.warn("当前温度".decode('utf-8').encode(sys.getfilesystemencoding()) + ': %0.1f' % (temp2))
+        self.LOG.warn("当前温度".decode(
+            'utf-8').encode(sys.getfilesystemencoding()) + ': %0.1f' % (temp2))
 
         # 设定温度 1word
         if self.WORDA_get_bit(5):
@@ -316,7 +248,8 @@ class Air():
         else:
             temp1 = struct.unpack('BB', self._STEMP)
             temp2 = temp1[0] * 256 + temp1[1] + 16
-        self.LOG.warn("设定温度".decode('utf-8').encode(sys.getfilesystemencoding()) + ': %0.1f' % (temp2))
+        self.LOG.warn("设定温度".decode(
+            'utf-8').encode(sys.getfilesystemencoding()) + ': %0.1f' % (temp2))
 
         # 模式 1word 0000 ~ 0004
         temp = struct.unpack('BB', self._MODE)
@@ -327,8 +260,8 @@ class Air():
             3: '送风',
             4: '除湿'
         }
-        self.LOG.warn("模式".decode('utf-8').encode(sys.getfilesystemencoding()) + ': %s' % (mode[temp[1]].decode('utf-8').encode(sys.getfilesystemencoding())))
-
+        self.LOG.warn("模式".decode('utf-8').encode(sys.getfilesystemencoding()) +
+                      ': %s' % (mode[temp[1]].decode('utf-8').encode(sys.getfilesystemencoding())))
 
         # 风速 1word 0000 ~ 0003
         temp = struct.unpack('BB', self._WIND)
@@ -338,7 +271,8 @@ class Air():
             2: '低风',
             3: '自动',
         }
-        self.LOG.warn("风速".decode('utf-8').encode(sys.getfilesystemencoding()) + ': %s' % (wind[temp[1]].decode('utf-8').encode(sys.getfilesystemencoding())))
+        self.LOG.warn("风速".decode('utf-8').encode(sys.getfilesystemencoding()) +
+                      ': %s' % (wind[temp[1]].decode('utf-8').encode(sys.getfilesystemencoding())))
 
         # 立体送风 1word
         # SOLIDH0:表示字SOLIDH的第0位，为“0”时，表示无“上下摆风”
@@ -350,15 +284,16 @@ class Air():
             mode = '有'
         else:
             mode = '无'
-        self.LOG.warn("上下摆风".decode('utf-8').encode(sys.getfilesystemencoding()) + ': %s' % (mode.decode('utf-8').encode(sys.getfilesystemencoding())))
+        self.LOG.warn("上下摆风".decode('utf-8').encode(sys.getfilesystemencoding()) +
+                      ': %s' % (mode.decode('utf-8').encode(sys.getfilesystemencoding())))
         if self.bit_get(self._SOLLDH, 1):
             mode = '有'
         else:
             mode = '无'
-        self.LOG.warn("左右摆风".decode('utf-8').encode(sys.getfilesystemencoding()) + ': %s' % (mode.decode('utf-8').encode(sys.getfilesystemencoding())))
+        self.LOG.warn("左右摆风".decode('utf-8').encode(sys.getfilesystemencoding()) +
+                      ': %s' % (mode.decode('utf-8').encode(sys.getfilesystemencoding())))
 
-    # 数据清洗， 清除掉可能混杂在串口中的未知数据
-    def protocol_data_wash(self, data):
+    def protocol_data_washer(self, data):
         data_list = []
         left_data = ''
 
@@ -377,7 +312,7 @@ class Air():
                     data_list.append(data[0:3 + length])
                     data = data[3 + length:]
                     if data:
-                        data_list_tmp, left_data_tmp = self.protocol_data_wash(
+                        data_list_tmp, left_data_tmp = self.protocol_data_washer(
                             data)
                         data_list += data_list_tmp
                         left_data += left_data_tmp
@@ -390,7 +325,6 @@ class Air():
 
         return data_list, left_data
 
-    # 根据来自wifi模块的消息更新空调模拟器的数据记录
     def protocol_handler(self, msg):
         # 查询
         if msg[10:12] == b'\x4d\x01':
@@ -572,6 +506,41 @@ class Air():
             self.LOG.error(protocol_data_printB(
                 msg, title='%s: invalid data:'))
             return self.msg_build()
+
+    @common_APIs.need_add_lock(state_lock)
+    def connection_setup(self):
+        self.LOG.warn('Try to open port %s...' % (self.port))
+        if self.serial.is_open():
+            self.LOG.info('Connection already setup!')
+            return True
+        elif self.serial.open():
+            self.connection = self.serial
+            self.set_connection_state('online')
+            self.LOG.info('Setup connection success!')
+            return True
+        else:
+            self.LOG.warn(self.port + " can't open!")
+            self.LOG.error('Setup connection failed!')
+            return False
+
+    def connection_close(self):
+        if self.serial.close():
+            self.connection = None
+            self.set_connection_state('offline')
+        else:
+            self.LOG.error('Close connection failed!')
+
+    def send_data(self, data):
+        self.LOG.yinfo(protocol_data_printB(
+            data, title=self.port + " send data:"))
+        return self.connection.write(data)
+
+    def recv_data(self):
+        datas = self.connection.readall()
+        if datas:
+            self.LOG.info(protocol_data_printB(
+                datas, title=self.port + " recv data:"))
+        return datas
 
 
 if __name__ == '__main__':

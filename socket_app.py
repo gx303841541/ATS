@@ -28,6 +28,7 @@ from APIs.common_APIs import (my_system, my_system_full_output,
                               my_system_no_check, protocol_data_printB)
 from basic.cprint import cprint
 from basic.log_tool import MyLogger
+from protocol.protocol_process import communication_base_obj
 
 if sys.platform == 'linux':
     import configparser as ConfigParser
@@ -35,7 +36,6 @@ if sys.platform == 'linux':
 else:
     import ConfigParser
     import Queue
-
 
 # 命令行参数梳理， 目前仅有-p 指定串口端口号
 
@@ -70,23 +70,6 @@ class ArgHandle():
             default=1,
             type=int,
             help='Specify how many socket client will be create',
-        )
-
-        parser.add_argument(
-            '-t', '--time-interval',
-            dest='time_interval',
-            action='store',
-            default=200,
-            type=int,
-            help='time intervavl for msg send to router',
-        )
-
-        parser.add_argument(
-            '-u', '--device-uuid',
-            dest='device_uuid',
-            action='store',
-            default='000e83c6c10000000000c85b765caf43',
-            help='Specify device uuid',
         )
         return parser
 
@@ -156,27 +139,51 @@ def sys_cleanup():
     LOG.info("Goodbye!!!")
 
 
-def getMsgup(req_id, uuid):
-    msg_temp_up = {
-        "uuid": "111",
-        "encry": "false",
-        "content": {
-                "method": "dm_set",
-                "req_id": 113468,
-            "token": "",
-            "nodeid": "airconditioner.main.temperature",
-            "params": {
-                "device_uuid": "",
-                "attribute": {
-                    "temperature": 26
-                }
-            }
-        }
-    }
-    msg_temp_up['content']['req_id'] = req_id
-    msg_temp_up['content']['params']['device_uuid'] = uuid
-    return str(json.dumps(msg_temp_up)) + '\n'
+class AirControl(communication_base_obj):
+    state_lock = threading.Lock()
 
+    def __init__(self, addr, logger):
+        self.queue_in = Queue.Queue()
+        self.queue_out = Queue.Queue()
+        super(AirControl, self).__init__(self.queue_in, self.queue_out,
+                                         logger=logger, left_data='', min_length=10)
+        self.addr = addr
+        self.name = 'AirControl'
+        self.connection = my_socket.MyClient(
+            addr, logger, debug=True, printB=True)
+        self.state = 'close'
+
+        # state data:
+        self.msgst = defaultdict(lambda: {})
+
+    @common_APIs.need_add_lock(state_lock)
+    def connection_setup(self):
+        self.LOG.warn('Try to connect %s...' % str(self.addr))
+        if self.connection.get_connected():
+            self.LOG.info('Connection already setup!')
+            return True
+        elif self.connection.connect():
+            self.set_connection_state(True)
+            self.LOG.info('Setup connection success!')
+            return True
+        else:
+            self.LOG.warn("Can't connect %s!" % str(self.addr))
+            self.LOG.error('Setup connection failed!')
+            return False
+
+    def connection_close(self):
+        if self.connection.close():
+            self.connection.set_connected(False)
+            self.set_connection_state(False)
+        else:
+            self.LOG.error('Close connection failed!')
+
+    def send_data(self, data):
+        return self.connection.send_once(data)
+
+    def recv_data(self):
+        datas = self.connection.recv_once()
+        return datas
 
 
 # 空调模拟程序入口
@@ -201,10 +208,10 @@ if __name__ == '__main__':
     clients = []
     for i in range(1, arg_handle.get_args('client_count') + 1):
         LOG.yinfo('To create client: %d' % (i))
-        client = my_socket.MyClient((arg_handle.get_args('server_IP'), arg_handle.get_args(
-            'server_port')), LOG, Queue.Queue(), Queue.Queue(), heartbeat=15, debug=True, singlethread=False, printB=False)
-        thread_list.append([client.run_forever])
-        thread_list.append([client.sendloop])
+        sim = AirControl(('192.168.10.1', 5100), logger=LOG)
+        thread_list.append([sim.schedule_loop])
+        thread_list.append([sim.send_data_loop])
+        thread_list.append([sim.heartbeat_loop, 15, '1\n'])
 
     # run threads
     sys_proc()

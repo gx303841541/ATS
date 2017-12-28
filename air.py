@@ -27,7 +27,6 @@ from basic.cprint import cprint
 import APIs.common_APIs as common_APIs
 from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output, protocol_data_printB
 from protocol.air_protocol import Air
-from protocol.protocol_process import PProcess
 
 # 命令行参数梳理， 目前仅有-p 指定串口端口号
 class ArgHandle():
@@ -190,11 +189,11 @@ if __name__ == '__main__':
     coms_list = {}
     for com_id in arg_handle.get_args('port_list'):
         coms_list[com_id] = Air('COM' + com_id, logger=LOG)
-        thread_list.append([coms_list[com_id].run_forever])
+        thread_list.append([coms_list[com_id].schedule_loop])
+        thread_list.append([coms_list[com_id].send_data_loop])
+        thread_list.append([coms_list[com_id].recv_data_loop])
 
-    # create protocal handle obj
-    msg_proc = PProcess(coms_list, logger=LOG)
-    thread_list.append([msg_proc.run_forever])
+
 
     # run threads
     sys_proc()

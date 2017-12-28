@@ -5,35 +5,36 @@
 by Kobe Gong. 2017-10-16
 """
 
-import re
-import sys
-import time
-import os
-import shutil
+import argparse
+import ConfigParser
 import datetime
-import threading
+import decimal
+import json
+import logging
+import os
+import Queue
 import random
+import re
+import shutil
 import signal
 import subprocess
-import argparse
-import logging
-import ConfigParser
+import sys
+import threading
+import time
 from cmd import Cmd
-import decimal
-import Queue
-import json
-
 from collections import defaultdict
 
-from basic.log_tool import MyLogger
-from basic.cprint import cprint
 import APIs.common_APIs as common_APIs
-from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output, protocol_data_printB
-from protocol.air_control_sim import AirControl
-from protocol.protocol_process import PProcess
 import connections.my_socket as my_socket
+from APIs.common_APIs import (my_system, my_system_full_output,
+                              my_system_no_check, protocol_data_printB)
+from basic.cprint import cprint
+from basic.log_tool import MyLogger
+from protocol.air_control_sim import AirControl
 
 # 命令行参数梳理，-t time interval; -u uuid
+
+
 class ArgHandle():
     def __init__(self):
         self.parser = self.build_option_parser("-" * 50)
@@ -170,28 +171,28 @@ def login_router(phone, password):
                 "phone": phone,
                 "pwd": password,
                 "os_type": "Android",
-                "app_version":"v0.5",
-                "os_version":"android4.3",
-                "hardware_version":"Huawei"
+                "app_version": "v0.5",
+                "os_version": "android4.3",
+                "hardware_version": "Huawei"
             }
         }
     }
     return str(json.dumps(msg)) + '\n'
 
 
-def air_control_msg(req_id, uuid):
+def app_msg(req_id, uuid):
     temperature = random.randint(17, 30)
-    msg_temp_up={
+    msg_temp_up = {
         "uuid": "111",
         "encry": "false",
         "content": {
-            "method":"dm_set",
-            "req_id":113468,
-            "token":"",
+            "method": "dm_set",
+            "req_id": 113468,
+            "token": "",
             "nodeid": "airconditioner.main.temperature",
-            "params":{
-                "device_uuid":"",
-                "attribute":{
+            "params": {
+                "device_uuid": "",
+                "attribute": {
                     "temperature": temperature
                 }
             }
@@ -209,13 +210,13 @@ def led_control_msg(req_id, uuid, on_off, family_id=1, user_id=1):
         "content": {
             "method": "dm_set",
             "req_id": req_id,
-            "timestamp":123456789,
+            "timestamp": 123456789,
             "nodeid": "bulb.main.switch",
-            "params":{
-        		"family_id": family_id,
-        		"user_id": user_id,
+            "params": {
+                "family_id": family_id,
+                "user_id": user_id,
                 "device_uuid": uuid,
-                "attribute":{
+                "attribute": {
                     "switch": on_off
                 }
             }
@@ -227,7 +228,8 @@ def led_control_msg(req_id, uuid, on_off, family_id=1, user_id=1):
 # 空调遥控器模拟程序入口
 if __name__ == '__main__':
     # sys log init
-    LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.DEBUG, renable=False)
+    LOG = MyLogger(os.path.abspath(sys.argv[0]).replace(
+        'py', 'log'), clevel=logging.DEBUG, renable=False)
 
     cprint = cprint(os.path.abspath(sys.argv[0]).replace('py', 'log'))
 
@@ -242,38 +244,35 @@ if __name__ == '__main__':
     global thread_list
     thread_list = []
 
-    queue_in, queue_out = Queue.Queue(), Queue.Queue()
-    client = my_socket.MyClient(('192.168.10.1', 5100), LOG, queue_in, queue_out, singlethread=False)
-    thread_list.append([client.run_forever])
-    thread_list.append([client.sendloop])
-
-
-    air_control = AirControl(queue_in=queue_in, queue_out=queue_out, logger=LOG)
-    pp = PProcess({'onlyone': air_control}, LOG)
-    thread_list.append([pp.run_forever])
+    app = AirControl(('192.168.10.1', 5100), logger=LOG)
+    thread_list.append([app.schedule_loop])
+    thread_list.append([app.send_data_loop])
+    thread_list.append([app.recv_data_loop])
 
     # run threads
     sys_proc()
 
     try:
-        while client.connected != True:
+        while app.connection.get_connected() != True:
             pass
-        msg = login_router(arg_handle.get_args('router_username'), common_APIs.get_md5(arg_handle.get_args('router_password')))
+        msg = login_router(arg_handle.get_args('router_username'), common_APIs.get_md5(
+            arg_handle.get_args('router_password')))
         LOG.info("To login router: " + msg.strip())
-        air_control.queue_out.put(msg)
+        app.queue_out.put(msg)
         login_flag = True
         time.sleep(1)
 
         if arg_handle.get_args('device_type') == 'air':
             for i in range(arg_handle.get_args('number_to_send')):
                 req_id = i + 88000000
-                msg = air_control_msg(req_id, arg_handle.get_args('device_uuid'))
-                air_control.msgst[req_id]['send_time'] = datetime.datetime.now()
-                air_control.queue_out.put(msg)
+                msg = app_msg(
+                    req_id, arg_handle.get_args('device_uuid'))
+                app.msgst[req_id]['send_time'] = datetime.datetime.now()
+                app.queue_out.put(msg)
                 LOG.info("send: " + msg.strip())
                 time.sleep(arg_handle.get_args('time_interval') / 1000.0)
 
-            while not air_control.queue_out.empty():
+            while not app.queue_out.empty():
                 time.sleep(1)
             time.sleep(5)
 
@@ -282,43 +281,46 @@ if __name__ == '__main__':
             min_delay = 8888888888
             max_delay = 0
             total_delay = 0
-            for item in air_control.msgst:
-                if 'delaytime' in air_control.msgst[item]:
-                    if air_control.msgst[item]['delaytime'] > max_delay:
-                        max_delay = air_control.msgst[item]['delaytime']
-                    if air_control.msgst[item]['delaytime'] < min_delay:
-                        min_delay = air_control.msgst[item]['delaytime']
-                    total_delay += air_control.msgst[item]['delaytime']
+            for item in app.msgst:
+                if 'delaytime' in app.msgst[item]:
+                    if app.msgst[item]['delaytime'] > max_delay:
+                        max_delay = app.msgst[item]['delaytime']
+                    if app.msgst[item]['delaytime'] < min_delay:
+                        min_delay = app.msgst[item]['delaytime']
+                    total_delay += app.msgst[item]['delaytime']
                 else:
                     pkg_lost += 1
                     pkg_lost_list.append(item)
 
-
-            LOG.info('Total package: %d' % len(air_control.msgst))
+            LOG.info('Total package: %d' % len(app.msgst))
             if pkg_lost_list:
                 LOG.error('Package with these ids have lost:')
                 for i in pkg_lost_list:
                     LOG.warn('%d' % i)
-            LOG.error('Loss Rate: ' + "%.2f" % (pkg_lost * 100.0 / arg_handle.get_args('number_to_send')) + '%')
+            LOG.error('Loss Rate: ' + "%.2f" % (pkg_lost * 100.0 /
+                                                arg_handle.get_args('number_to_send')) + '%')
             LOG.info('MAX delay time: %dms' % max_delay)
             LOG.yinfo('MIN delay time: %dms' % min_delay)
-            LOG.info('Average delay time(%d / %d): %.2fms' % (total_delay, (len(air_control.msgst) - pkg_lost), (total_delay + 0.0) / (len(air_control.msgst) - pkg_lost)))
+            LOG.info('Average delay time(%d / %d): %.2fms' % (total_delay, (len(app.msgst) -
+                                                                            pkg_lost), (total_delay + 0.0) / (len(app.msgst) - pkg_lost)))
 
         elif arg_handle.get_args('device_type') == 'led':
             for i in range(arg_handle.get_args('number_to_send')):
                 req_id = i + 66000000
-                msg = led_control_msg(req_id, arg_handle.get_args('device_uuid'), 'on')
-                air_control.queue_out.put(msg)
+                msg = led_control_msg(
+                    req_id, arg_handle.get_args('device_uuid'), 'on')
+                app.queue_out.put(msg)
                 LOG.info("send: " + msg.strip())
                 time.sleep(arg_handle.get_args('time_interval') / 1000.0)
 
                 req_id = i + 77000000
-                msg = led_control_msg(req_id, arg_handle.get_args('device_uuid'), 'off')
-                air_control.queue_out.put(msg)
+                msg = led_control_msg(
+                    req_id, arg_handle.get_args('device_uuid'), 'off')
+                app.queue_out.put(msg)
                 LOG.info("send: " + msg.strip())
                 time.sleep(arg_handle.get_args('time_interval') / 1000.0)
 
-            while not air_control.queue_out.empty():
+            while not app.queue_out.empty():
                 time.sleep(1)
         else:
             LOG.error('Not support device!')

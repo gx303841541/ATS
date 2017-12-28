@@ -5,60 +5,163 @@
 by Kobe Gong. 2017-9-13
 """
 
-import os
-import logging
-import datetime
-import re
-import sys
-import time
-import struct
-import Queue
-from abc import ABCMeta, abstractmethod
 import binascii
-
+import datetime
+import logging
+import os
+import Queue
+import re
+import struct
+import sys
+import threading
+import time
+from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
+import APIs.common_APIs as common_APIs
 from APIs.common_APIs import protocol_data_printB
 
+if sys.getdefaultencoding() != 'utf-8':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
-# 消息分发类
-class PProcess():
-    def __init__(self, conn_dict, logger=None):
-        self.conn_dict = conn_dict
+
+class communication_base_obj(object):
+    send_lock = threading.Lock()
+
+    def __init__(self, queue_in, queue_out, logger, left_data='', min_length=10):
+        self.queue_in = queue_in
+        self.queue_out = queue_out
         self.LOG = logger
+        self.left_data = left_data
+        self.min_length = min_length
+        self.connection = ''
+        self.name = 'some guy'
 
-    # 处理来自各实体的消息
+    @abstractmethod
+    def protocol_handler(self, msg):
+        pass
+
+    @abstractmethod
+    def protocol_data_washer(self, data):
+        pass
+
     def run_forever(self):
         while True:
-            for gay in self.conn_dict:
-                if self.conn_dict[gay].queue_in.empty():
-                    continue
+            if self.get_connection_state() == 'online':
+                pass
+            else:
+                if self.conection_setup():
+                    pass
                 else:
-                    ori_data = self.conn_dict[gay].left_data + \
-                        self.conn_dict[gay].queue_in.get()
-                    while len(ori_data) < self.conn_dict[gay].min_length:
-                        ori_data += self.conn_dict[gay].queue_in.get()
+                    time.sleep(10)
+                    continue
 
-                    data_list, self.conn_dict[gay].left_data = self.protocol_data_wash(self.conn_dict[gay], ori_data)
-                    if data_list:
-                        for request_data in data_list:
-                            response_data = self.protocol_handler(self.conn_dict[gay], request_data)
-                            if response_data == 'No_need_send':
-                                pass
-                            elif response_data:
-                                self.conn_dict[gay].queue_out.put(response_data)
-                            else:
-                                self.LOG.error(protocol_data_printB(request_data, title='%s: got invalid data:' % (self.conn_dict[gay].name)))
-                    else:
-                        continue
+            self.recv_data_once()
+            self.send_data_once()
 
-    # 处理来包
-    def protocol_handler(self, gay, data):
-        return gay.protocol_handler(data)
+    @abstractmethod
+    def msg_build(self):
+        pass
 
-    # 数据清洗
-    def protocol_data_wash(self, gay, msg):
-        return gay.protocol_data_wash(msg)
+    @abstractmethod
+    def connection_setup(self):
+        pass
+
+    @abstractmethod
+    def connection_close(self):
+        pass
+
+    def get_connection_state(self):
+        return self.connection.get_connected()
+
+    def set_connection_state(self, new_state):
+        self.connection.set_connected(new_state)
+
+    @abstractmethod
+    def send_data(self, data):
+        pass
+
+    @abstractmethod
+    def recv_data(self, data):
+        pass
+
+    @common_APIs.need_add_lock(send_lock)
+    def send_data_once(self, data=None):
+        if data:
+            self.queue_out.put(data)
+
+        if self.queue_out.empty():
+            pass
+        else:
+            while not self.queue_out.empty():
+                data = self.queue_out.get()
+                self.send_data(data)
+
+    def recv_data_once(self):
+        #datas = ''
+        #data = self.recv_data()
+        # while data:
+        #    datas += data
+        #    data = self.recv_data()
+        datas = self.recv_data()
+        if datas:
+            self.queue_in.put(datas)
+        return datas
+
+    def send_data_loop(self):
+        while True:
+            if self.get_connection_state():
+                pass
+            else:
+                if self.connection_setup():
+                    pass
+                else:
+                    time.sleep(1)
+                    continue
+            self.send_data_once()
+
+    def recv_data_loop(self):
+        while True:
+            if self.get_connection_state():
+                pass
+            else:
+                if self.connection_setup():
+                    pass
+                else:
+                    time.sleep(1)
+                    continue
+            self.recv_data_once()
+
+    def heartbeat_loop(self, heartbeat_interval=3, heartbeat_data='0'):
+        while True:
+            if self.get_connection_state():
+                self.send_data_once(data=heartbeat_data)
+            else:
+                self.LOG.debug('offline?')
+            time.sleep(heartbeat_interval)
+
+    def schedule_loop(self):
+        while True:
+            if self.queue_in.empty():
+                continue
+            else:
+                ori_data = self.left_data + self.queue_in.get()
+                while len(ori_data) < self.min_length:
+                    ori_data += self.queue_in.get()
+                data_list, self.left_data = self.protocol_data_washer(ori_data)
+                if data_list:
+                    for request_msg in data_list:
+                        response_msg = self.protocol_handler(request_msg)
+                        if response_msg == 'No_need_send':
+                            pass
+                        elif response_msg:
+                            self.queue_out.put(response_msg)
+                        else:
+                            self.LOG.error(protocol_data_printB(
+                                request_msg, title='%s: got invalid data:' % (self.name)))
+                else:
+                    continue
 
 
 if __name__ == '__main__':

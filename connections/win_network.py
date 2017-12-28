@@ -47,6 +47,10 @@ class WinNetwork():
         self.xml['WLANProfile']['MSM']['security']['authEncryption']['authentication'] = authentication
         self.xml['WLANProfile']['MSM']['security']['authEncryption']['encryption'] = encryption
         self.xml['WLANProfile']['MSM']['security']['sharedKey']['keyMaterial'] = passwd
+        if passwd=='':
+            self.xml['WLANProfile']['MSM']['security']['authEncryption']['authentication'] = 'open'
+            self.xml['WLANProfile']['MSM']['security']['authEncryption']['encryption'] = 'none'
+        
         with open(self.profile, 'w') as f:
             xmltodict.unparse(input_dict=self.xml, output=f)
 
