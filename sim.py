@@ -52,7 +52,7 @@ class ArgHandle():
             '--device',
             dest='device_type',
             action='store',
-            choices={'air', 'hanger'},
+            choices={'air', 'hanger', 'water'},
             default='air',
             help='Specify device type',
         )
@@ -159,7 +159,7 @@ class AirSim():
         for item in self.__dict__:
             if item == 'LOG':
                 continue
-            self.LOG.warn("%s: %s" % (item, self.__dict__[item]))
+            self.LOG.warn("%s: %s" % (item, str(self.__dict__[item])))
 
     def get_event_report(self):
         report_msg = {
@@ -265,6 +265,8 @@ class AirSim():
                     "code": 0
                 }
                 return [json.dumps(rsp_msg), self.get_event_report()]
+            else:
+                self.LOG.warn('TODO in the feature!')
         else:
             self.LOG.warn('TODO in the feature!')
 
@@ -274,7 +276,7 @@ class HangerSim():
         self.LOG = logger
 
         # state data:
-        self.control = 'pause'
+        self.status = 'pause'
         self.light = "off"
         self.sterilization = "off"
         self.drying = "off"
@@ -284,7 +286,7 @@ class HangerSim():
         for item in self.__dict__:
             if item == 'LOG':
                 continue
-            self.LOG.warn("%s: %s" % (item, self.__dict__[item]))
+            self.LOG.warn("%s: %s" % (item, str(self.__dict__[item])))
 
     def get_event_report(self):
         report_msg = {
@@ -294,7 +296,7 @@ class HangerSim():
                 "sterilization": self.sterilization,
                 "drying": self.drying,
                 "air_drying": self.air_drying,
-                "status": self.control
+                "status": self.status
             }
         }
         return json.dumps(report_msg)
@@ -314,7 +316,7 @@ class HangerSim():
                         "sterilization": self.sterilization,
                         "drying": self.drying,
                         "air_drying": self.air_drying,
-                        "status": self.control
+                        "status": self.status
                     }
                 }
                 return [json.dumps(rsp_msg)]
@@ -325,7 +327,7 @@ class HangerSim():
             if msg['nodeid'] == u"clothes_hanger.main.control":
                 self.LOG.warn(
                     ("设置上下控制: %s" % (msg['params']["attribute"]["control"])).decode('utf-8').encode(coding))
-                self.control = msg['params']["attribute"]["control"]
+                self.status = msg['params']["attribute"]["control"]
                 rsp_msg = {
                     "method": "dm_set",
                     "req_id": msg['req_id'],
@@ -377,6 +379,87 @@ class HangerSim():
                     "code": 0
                 }
                 return [json.dumps(rsp_msg), self.get_event_report()]
+            else:
+                self.LOG.warn('TODO in the feature!')
+        else:
+            self.LOG.warn('TODO in the feature!')
+
+
+class WaterFilter():
+    def __init__(self, logger):
+        self.LOG = logger
+
+        # state data:
+        self.filter_result = {
+            "TDS": [
+                500,
+                100
+            ]
+        }
+        self.status = 'filter'
+        self.water_leakage = "off"
+        self.water_shortage = "off"
+        self.filter_time_used = "1000"
+        self.filter_time_remaining = '300'
+
+    def show_state(self):
+        for item in self.__dict__:
+            if item == 'LOG':
+                continue
+            self.LOG.warn("%s: %s" % (item, str(self.__dict__[item])))
+
+    def get_event_report(self):
+        report_msg = {
+            "method": "report",
+            "attribute": {
+                "filter_result": self.filter_result,
+                "status": self.status,
+                "water_leakage": self.water_leakage,
+                "water_shortage": self.water_shortage,
+                "filter_time_used": self.filter_time_used,
+                "filter_time_remaining": self.filter_time_remaining
+            }
+        }
+        return json.dumps(report_msg)
+
+    def protocol_handler(self, msg):
+        coding = sys.getfilesystemencoding()
+        if msg['method'] == 'dm_get':
+            if msg['nodeid'] == u"water_filter.main.all_properties":
+                self.LOG.warn("获取所有属性".decode('utf-8').encode(coding))
+                rsp_msg = {
+                    "method": "dm_get",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0,
+                    "attribute": {
+                        "filter_result": self.filter_result,
+                        "status": self.status,
+                        "water_leakage": self.water_leakage,
+                        "water_shortage": self.water_shortage,
+                        "filter_time_used": self.filter_time_used,
+                        "filter_time_remaining": self.filter_time_remaining
+                    }
+                }
+                return [json.dumps(rsp_msg)]
+            else:
+                self.LOG.warn('TODO in the feature!')
+
+        elif msg['method'] == 'dm_set':
+            if msg['nodeid'] == u"water_filter.main.control":
+                self.LOG.warn(
+                    ("设置冲洗: %s" % (msg['params']["attribute"]["control"])).decode('utf-8').encode(coding))
+                self.status = msg['params']["attribute"]["control"]
+                rsp_msg = {
+                    "method": "dm_set",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0
+                }
+                return [json.dumps(rsp_msg), self.get_event_report()]
+            else:
+                self.LOG.warn('TODO in the feature!')
+
         else:
             self.LOG.warn('TODO in the feature!')
 
@@ -405,6 +488,9 @@ if __name__ == '__main__':
     elif arg_handle.get_args('device_type') == 'hanger':
         sim = HangerSim(logger=LOG)
         deviceCategory = 'clothes_hanger.main'
+    elif arg_handle.get_args('device_type') == 'water':
+        sim = WaterFilter(logger=LOG)
+        deviceCategory = 'water_filter.main'
     wifi = Wifi(('192.168.10.1', 65381), logger=LOG,
                 sim_obj=sim, mac=arg_handle.get_args('mac'), deviceCategory=deviceCategory)
     thread_list.append([wifi.schedule_loop])

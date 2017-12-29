@@ -145,12 +145,21 @@ class Wifi(communication_base_obj):
                     msg_code = self.get_msg_code(msg)
                     msg_length = self.get_msg_length(msg_code)
                     return msg_head + msg_length + msg_code
+
                 elif msg[4:6] == b'\x00\x06':
                     self.LOG.warn("删除设备".decode('utf-8').encode(coding))
                     msg_head = self.get_msg_head(msg)
                     msg_code = self.get_msg_code(msg)
                     msg_length = self.get_msg_length(msg_code)
                     return msg_head + msg_length + msg_code
+
+                else:
+                    self.LOG.error('Unknow msg: %s' % (msg[4:6]))
+                    return "No_need_send"
+
+            else:
+                self.LOG.error('Unknow msg: %s' % (msg[3:6]))
+                return "No_need_send"
 
         elif msg[2] == b'\x03':
             dict_msg = json.loads(msg[3:-1])
@@ -168,6 +177,7 @@ class Wifi(communication_base_obj):
 
         else:
             self.LOG.warn('Todo in the feature!')
+            return "No_need_send"
 
     @common_APIs.need_add_lock(state_lock)
     def connection_setup(self):
