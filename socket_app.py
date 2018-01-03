@@ -28,7 +28,7 @@ from APIs.common_APIs import (my_system, my_system_full_output,
                               my_system_no_check, protocol_data_printB)
 from basic.cprint import cprint
 from basic.log_tool import MyLogger
-from protocol.protocol_process import communication_base_obj
+from protocol.protocol_process import communication_base
 
 if sys.platform == 'linux':
     import configparser as ConfigParser
@@ -139,7 +139,7 @@ def sys_cleanup():
     LOG.info("Goodbye!!!")
 
 
-class AirControl(communication_base_obj):
+class AirControl(communication_base):
     state_lock = threading.Lock()
 
     def __init__(self, addr, logger):

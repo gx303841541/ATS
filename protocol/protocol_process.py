@@ -26,7 +26,7 @@ if sys.getdefaultencoding() != 'utf-8':
     sys.setdefaultencoding('utf-8')
 
 
-class communication_base_obj(object):
+class communication_base(object):
     send_lock = threading.Lock()
 
     def __init__(self, queue_in, queue_out, logger, left_data='', min_length=10):
@@ -85,6 +85,10 @@ class communication_base_obj(object):
     @abstractmethod
     def recv_data(self, data):
         pass
+
+    @common_APIs.need_add_lock(send_lock)
+    def add_send_data(self, data):
+        self.queue_out.put(data)
 
     @common_APIs.need_add_lock(send_lock)
     def send_data_once(self, data=None):

@@ -15,6 +15,7 @@ import random
 import re
 import shutil
 import signal
+import struct
 import subprocess
 import sys
 import threading
@@ -27,7 +28,12 @@ from APIs.common_APIs import (my_system, my_system_full_output,
                               my_system_no_check, protocol_data_printB)
 from basic.cprint import cprint
 from basic.log_tool import MyLogger
+from basic.task import Task
 from protocol.wifi_protocol import Wifi
+
+if sys.getdefaultencoding() != 'utf-8':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
 
 class ArgHandle():
@@ -37,7 +43,14 @@ class ArgHandle():
     def build_option_parser(self, description):
         parser = argparse.ArgumentParser(description=description)
         parser.add_argument(
+            '-d', '--debug',
+            dest='debug',
+            action='store_true',
+            help='debug switch',
+        )
+        parser.add_argument(
             '-l', '--cmdloop',
+            dest='cmdloop',
             action='store_true',
             help='whether go into cmd loop',
         )
@@ -52,7 +65,7 @@ class ArgHandle():
             '--device',
             dest='device_type',
             action='store',
-            choices={'air', 'hanger', 'water'},
+            choices={'air', 'hanger', 'waterfilter', 'airfilter'},
             default='air',
             help='Specify device type',
         )
@@ -146,6 +159,7 @@ def sys_cleanup():
 class AirSim():
     def __init__(self, logger):
         self.LOG = logger
+        self.wifi_obj = None
 
         # state data:
         self.switchStatus = 'off'
@@ -154,6 +168,9 @@ class AirSim():
         self.speed = "low"
         self.wind_up_down = 'off'
         self.wind_left_right = 'off'
+
+    def run_forever(self):
+        pass
 
     def show_state(self):
         for item in self.__dict__:
@@ -274,6 +291,7 @@ class AirSim():
 class HangerSim():
     def __init__(self, logger):
         self.LOG = logger
+        self.wifi_obj = None
 
         # state data:
         self.status = 'pause'
@@ -281,6 +299,9 @@ class HangerSim():
         self.sterilization = "off"
         self.drying = "off"
         self.air_drying = 'off'
+
+    def run_forever(self):
+        pass
 
     def show_state(self):
         for item in self.__dict__:
@@ -388,8 +409,10 @@ class HangerSim():
 class WaterFilter():
     def __init__(self, logger):
         self.LOG = logger
+        self.wifi_obj = None
 
         # state data:
+        self.task_obj = Task('WaterFilter-task', self.LOG)
         self.filter_result = {
             "TDS": [
                 500,
@@ -399,12 +422,45 @@ class WaterFilter():
         self.status = 'filter'
         self.water_leakage = "off"
         self.water_shortage = "off"
-        self.filter_time_used = "1000"
-        self.filter_time_remaining = '300'
+        self.filter_time_used = {
+            1: 101,
+            2: 202,
+        }
+        self.filter_time_remaining = {
+            1: 1899,
+            2: 1798,
+        }
+
+    def reset_filter_time(self, id):
+        if int(id) in self.filter_time_used:
+            self.filter_time_used[int(id)] = 0
+            self.filter_time_remaining[int(id)] = 2000
+            return True
+        else:
+            self.LOG.error('Unknow ID: %s' % (id))
+            return False
+
+    def get_filter_time_used(self):
+        filter_time_used_list = []
+        for id in sorted(self.filter_time_used):
+            filter_time_used_list.append(self.filter_time_used[id])
+        return filter_time_used_list
+
+    def get_filter_time_remaining(self):
+        filter_time_remaining_list = []
+        for id in sorted(self.filter_time_remaining):
+            filter_time_remaining_list.append(self.filter_time_remaining[id])
+        return filter_time_remaining_list
+
+    def run_forever(self):
+        return self.task_obj.task_proc()
+
+    def set_state(self, item, value):
+        self.__dict__[item] = value
 
     def show_state(self):
         for item in self.__dict__:
-            if item == 'LOG':
+            if item == 'LOG' or re.search(r'obj$', item):
                 continue
             self.LOG.warn("%s: %s" % (item, str(self.__dict__[item])))
 
@@ -416,11 +472,14 @@ class WaterFilter():
                 "status": self.status,
                 "water_leakage": self.water_leakage,
                 "water_shortage": self.water_shortage,
-                "filter_time_used": self.filter_time_used,
-                "filter_time_remaining": self.filter_time_remaining
+                "filter_time_used": self.get_filter_time_used(),
+                "filter_time_remaining": self.get_filter_time_remaining()
             }
         }
         return json.dumps(report_msg)
+
+    def send_event_report(self):
+        return self.wifi_obj.add_send_data(self.wifi_obj.msg_build(self.get_event_report()))
 
     def protocol_handler(self, msg):
         coding = sys.getfilesystemencoding()
@@ -456,6 +515,26 @@ class WaterFilter():
                     "msg": "success",
                     "code": 0
                 }
+                self.task_obj.add_task(
+                    'change WaterFilter to filter', self.set_state, 1, 30, 'status', 'filter')
+                self.task_obj.add_task(
+                    'state report', self.send_event_report, 1, 31)
+                return [json.dumps(rsp_msg), self.get_event_report()]
+
+            elif msg['nodeid'] == u"water_filter.main.reset_filter":
+                self.LOG.warn(
+                    ("复位滤芯: %s" % (msg['params']["attribute"]["reset_filter"])).decode('utf-8').encode(coding))
+                filter_ids = msg['params']["attribute"]["reset_filter"]
+                if 0 in filter_ids:
+                    filter_ids = self.filter_time_used.keys()
+                for filter_id in filter_ids:
+                    self.reset_filter_time(filter_id)
+                rsp_msg = {
+                    "method": "dm_set",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0
+                }
                 return [json.dumps(rsp_msg), self.get_event_report()]
             else:
                 self.LOG.warn('TODO in the feature!')
@@ -464,21 +543,185 @@ class WaterFilter():
             self.LOG.warn('TODO in the feature!')
 
 
-# 主程序入口
+class AirFilter():
+    def __init__(self, logger):
+        self.LOG = logger
+        self.wifi_obj = None
+
+        # state data:
+        self.air_filter_result = {
+            "air_quality": [
+                "low",
+                "high"
+            ],
+            "PM25": [
+                500,
+                100
+            ]
+        }
+        self.switch_status = 'off'
+        self.child_lock_switch_status = "off"
+        self.negative_ion_switch_status = "off"
+        self.speed = "low"
+        self.control_status = 'auto'
+        self.filter_time_used = '101'
+        self.filter_time_remaining = '1899'
+
+    def reset_filter_time(self, id):
+        if int(id) in self.filter_time_used:
+            self.filter_time_used[int(id)] = 0
+            self.filter_time_remaining[int(id)] = 2000
+            return True
+        else:
+            self.LOG.error('Unknow ID: %s' % (id))
+            return False
+
+    def get_filter_time_used(self):
+        filter_time_used_list = []
+        for id in sorted(self.filter_time_used):
+            filter_time_used_list.append(self.filter_time_used[id])
+        return filter_time_used_list
+
+    def get_filter_time_remaining(self):
+        filter_time_remaining_list = []
+        for id in sorted(self.filter_time_remaining):
+            filter_time_remaining_list.append(self.filter_time_remaining[id])
+        return filter_time_remaining_list
+
+    def run_forever(self):
+        pass
+
+    def set_state(self, item, value):
+        self.__dict__[item] = value
+
+    def show_state(self):
+        for item in self.__dict__:
+            if item == 'LOG' or re.search(r'obj$', item):
+                continue
+            self.LOG.warn("%s: %s" % (item, str(self.__dict__[item])))
+
+    def get_event_report(self):
+        report_msg = {
+            "method": "report",
+            "attribute": {
+                "air_filter_result": self.air_filter_result,
+                "switch_status": self.switch_status,
+                "child_lock_switch_status": self.child_lock_switch_status,
+                "negative_ion_switch_status": self.negative_ion_switch_status,
+                "speed": self.speed,
+                "control_status": self.control_status,
+                "filter_time_used": self.filter_time_used,
+                "filter_time_remaining": self.filter_time_remaining
+            }
+        }
+        return json.dumps(report_msg)
+
+    def send_event_report(self):
+        return self.wifi_obj.add_send_data(self.wifi_obj.msg_build(self.get_event_report()))
+
+    def protocol_handler(self, msg):
+        coding = sys.getfilesystemencoding()
+        if msg['method'] == 'dm_get':
+            if msg['nodeid'] == u"air_filter.main.all_properties":
+                self.LOG.warn("获取所有属性".decode('utf-8').encode(coding))
+                rsp_msg = {
+                    "method": "dm_get",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0,
+                    "attribute": {
+                        "air_filter_result": self.air_filter_result,
+                        "switch_status": self.switch_status,
+                        "child_lock_switch_status": self.child_lock_switch_status,
+                        "negative_ion_switch_status": self.negative_ion_switch_status,
+                        "speed": self.speed,
+                        "control_status": self.control_status,
+                        "filter_time_used": self.filter_time_used,
+                        "filter_time_remaining": self.filter_time_remaining
+                    }
+                }
+                return [json.dumps(rsp_msg)]
+            else:
+                self.LOG.warn('TODO in the feature!')
+
+        elif msg['method'] == 'dm_set':
+            if msg['nodeid'] == u"air_filter.main.switch":
+                self.LOG.warn(
+                    ("开关机: %s" % (msg['params']["attribute"]["switch"])).decode('utf-8').encode(coding))
+                self.switch_status = msg['params']["attribute"]["switch"]
+                rsp_msg = {
+                    "method": "dm_set",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0
+                }
+                return [json.dumps(rsp_msg), self.get_event_report()]
+
+            elif msg['nodeid'] == u"air_filter.main.child_lock_switch":
+                self.LOG.warn(
+                    ("童锁开关: %s" % (msg['params']["attribute"]["child_lock_switch"])).decode('utf-8').encode(coding))
+                self.child_lock_switch_status = msg['params']["attribute"]["child_lock_switch"]
+                rsp_msg = {
+                    "method": "dm_set",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0
+                }
+                return [json.dumps(rsp_msg), self.get_event_report()]
+
+            elif msg['nodeid'] == u"air_filter.main.negative_ion_switch":
+                self.LOG.warn(
+                    ("负离子开关: %s" % (msg['params']["attribute"]["negative_ion_switch"])).decode('utf-8').encode(coding))
+                self.negative_ion_switch_status = msg['params']["attribute"]["negative_ion_switch"]
+                rsp_msg = {
+                    "method": "dm_set",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0
+                }
+                return [json.dumps(rsp_msg), self.get_event_report()]
+
+            elif msg['nodeid'] == u"air_filter.main.control":
+                self.LOG.warn(
+                    ("设置模式切换: %s" % (msg['params']["attribute"]["control"])).decode('utf-8').encode(coding))
+                self.control_status = msg['params']["attribute"]["control"]
+                rsp_msg = {
+                    "method": "dm_set",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0
+                }
+                return [json.dumps(rsp_msg), self.get_event_report()]
+
+            elif msg['nodeid'] == u"air_filter.main.speed":
+                self.LOG.warn(
+                    ("设置风量调节: %s" % (msg['params']["attribute"]["speed"])).decode('utf-8').encode(coding))
+                self.speed = msg['params']["attribute"]["speed"]
+                rsp_msg = {
+                    "method": "dm_set",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0
+                }
+                return [json.dumps(rsp_msg), self.get_event_report()]
+
+            else:
+                self.LOG.warn('TODO in the feature!')
+
+        else:
+            self.LOG.warn('TODO in the feature!')
+
+
 if __name__ == '__main__':
-    # sys log init
     LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.DEBUG,
                    rlevel=logging.WARN)
     cprint = cprint(__name__)
 
-    # sys init
     sys_init()
 
-    # cmd arg init
     arg_handle = ArgHandle()
     arg_handle.run()
 
-    # multi thread
     global thread_list
     thread_list = []
 
@@ -488,21 +731,50 @@ if __name__ == '__main__':
     elif arg_handle.get_args('device_type') == 'hanger':
         sim = HangerSim(logger=LOG)
         deviceCategory = 'clothes_hanger.main'
-    elif arg_handle.get_args('device_type') == 'water':
+    elif arg_handle.get_args('device_type') == 'waterfilter':
         sim = WaterFilter(logger=LOG)
         deviceCategory = 'water_filter.main'
+    elif arg_handle.get_args('device_type') == 'airfilter':
+        sim = AirFilter(logger=LOG)
+        deviceCategory = 'air_filter.main'
     wifi = Wifi(('192.168.10.1', 65381), logger=LOG,
                 sim_obj=sim, mac=arg_handle.get_args('mac'), deviceCategory=deviceCategory)
     thread_list.append([wifi.schedule_loop])
     thread_list.append([wifi.send_data_loop])
     thread_list.append([wifi.recv_data_loop])
     thread_list.append([wifi.heartbeat_loop])
+    thread_list.append([sim.run_forever])
 
-    # run threads
     sys_proc()
 
+    if arg_handle.get_args('debug'):
+        dmsg = {
+            "method": "dm_set",
+            "req_id": 178237278,
+            "nodeid": "water_filter.main.control",
+            "params": {
+                "attribute": {
+                    "control": "clean"
+                }
+            }
+        }
+
+        dmsg = {
+            "method": "dm_set",
+            "req_id": 178237278,
+            "nodeid": "air_filter.main.speed",
+            "params": {
+                "attribute": {
+                    "speed": "xxoo"
+                }
+            }
+
+        }
+        time.sleep(1)
+        sim.wifi_obj.queue_in.put(
+            b'\x77\x56\x43\xaa' + struct.pack('>H', len(json.dumps(dmsg)) + 2) + b'\x03' + json.dumps(dmsg) + b'\x00')
+
     if arg_handle.get_args('cmdloop') or True:
-        # cmd loop
         signal.signal(signal.SIGINT, lambda signal,
                       frame: cprint.notice_p('Exit SYSTEM: exit'))
         my_cmd = MyCmd(logger=LOG, dev=wifi)
@@ -510,7 +782,5 @@ if __name__ == '__main__':
 
     else:
         sys_join()
-
-        # sys clean
         sys_cleanup()
         sys.exit()

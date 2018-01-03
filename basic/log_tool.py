@@ -6,16 +6,18 @@ by Kobe Gong. 2017-8-21
 """
 
 import logging
-import sys
 import os
-from logging.handlers import RotatingFileHandler
+import sys
 import traceback
+from logging.handlers import RotatingFileHandler
+
+from .cprint import cprint
+
 if sys.platform == 'linux':
     import coloredlogs
     coloredlogs.DEFAULT_DATE_FORMAT = ''
     coloredlogs.DEFAULT_LOG_FORMAT = '[%(asctime)s] [%(levelname)s] %(message)s'
 
-from .cprint import cprint
 
 
 # Windows CMD命令行 字体颜色定义 text colors
@@ -94,7 +96,7 @@ class MyLogger:
         self.critical('Change log level to %s' % (str(clevel)))
         self.p.setLevel(clevel)
 
-    def set_fmt(self, fmt = logging.Formatter('')):
+    def set_fmt(self, fmt=logging.Formatter('')):
         self.sh.setFormatter(fmt)
         self.fh.setFormatter(fmt)
         self.rh.setFormatter(fmt)

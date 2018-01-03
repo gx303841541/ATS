@@ -22,10 +22,10 @@ from collections import defaultdict
 import APIs.common_APIs as common_APIs
 import connections.my_socket as my_socket
 from APIs.common_APIs import crc, protocol_data_printB
-from protocol.protocol_process import communication_base_obj
+from protocol.protocol_process import communication_base
 
 
-class AirControl(communication_base_obj):
+class AirControl(communication_base):
     state_lock = threading.Lock()
 
     def __init__(self, addr, logger):

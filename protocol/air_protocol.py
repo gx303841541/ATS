@@ -5,29 +5,30 @@
 by Kobe Gong. 2017-9-13
 """
 
-import threading
-import os
-import logging
-import datetime
-import re
-import sys
-import time
-import struct
-import Queue
-from abc import ABCMeta, abstractmethod
 import binascii
-
+import datetime
+import logging
+import os
+import Queue
+import re
+import struct
+import sys
+import threading
+import time
+from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+
 import APIs.common_APIs as common_APIs
 from APIs.common_APIs import crc, protocol_data_printB
 from connections.my_serial import MySerial
-from protocol.protocol_process import communication_base_obj
+from protocol.protocol_process import communication_base
 
 # 空调模拟器
 
 
-class Air(communication_base_obj):
+class Air(communication_base):
     state_lock = threading.Lock()
+
     def __init__(self, port=None, baudrate=9600, logger=None):
         super(Air, self).__init__(queue_in=Queue.Queue(),
                                   queue_out=Queue.Queue(), logger=logger, left_data='', min_length=13)

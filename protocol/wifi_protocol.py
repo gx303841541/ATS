@@ -23,10 +23,10 @@ from collections import defaultdict
 import APIs.common_APIs as common_APIs
 import connections.my_socket as my_socket
 from APIs.common_APIs import crc, protocol_data_printB
-from protocol.protocol_process import communication_base_obj
+from protocol.protocol_process import communication_base
 
 
-class Wifi(communication_base_obj):
+class Wifi(communication_base):
     state_lock = threading.Lock()
 
     def __init__(self, addr, logger, sim_obj, mac='123456', deviceCategory='airconditioner.new'):
@@ -39,6 +39,7 @@ class Wifi(communication_base_obj):
         self.connection = my_socket.MyClient(addr, logger)
         self.state = 'close'
         self.sim_obj = sim_obj
+        self.sim_obj.wifi_obj = self
 
         # state data:
         # 2:short version
@@ -66,8 +67,14 @@ class Wifi(communication_base_obj):
         # 1:unsigned char wait_added;
         self.wait_added = '\x00'
 
-    def msg_build(self):
-        return 'No_need_send'
+    def msg_build(self, data):
+        self.LOG.debug(str(data))
+        self.LOG.yinfo(self.convert_to_dictstr(data))
+        msg_head = self.get_msg_head(data)
+        msg_code = '\x01'
+        msg_length = self.get_msg_length(msg_code + data + '\x00')
+        msg = msg_head + msg_length + msg_code + data + '\x00'
+        return msg
 
     def protocol_data_washer(self, data):
         data_list = []
@@ -167,12 +174,7 @@ class Wifi(communication_base_obj):
             rsp_msg_list = self.sim_obj.protocol_handler(dict_msg)
             final_rsp_msg = ''
             for rsp_msg in rsp_msg_list:
-                self.LOG.debug(str(rsp_msg))
-                self.LOG.yinfo(self.convert_to_dictstr(rsp_msg))
-                msg_head = self.get_msg_head(msg)
-                msg_code = '\x01'
-                msg_length = self.get_msg_length(msg_code + rsp_msg + '\x00')
-                final_rsp_msg += msg_head + msg_length + msg_code + rsp_msg + '\x00'
+                final_rsp_msg += self.msg_build(rsp_msg)
             return final_rsp_msg
 
         else:
