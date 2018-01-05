@@ -84,12 +84,12 @@ class Task():
                 self.tasks[task]['now_seconds'] += 1
                 if self.tasks[task]['now_seconds'] >= self.tasks[task]['interval']:
                     if callable(self.tasks[task]['func']):
-                        self.LOG.info("It is time to run %s: " % (
-                            task) + self.tasks[task]['func'].__name__ + str(self.tasks[task]['argv']))
+                        # self.LOG.info("It is time to run %s: " % (
+                        #    task) + self.tasks[task]['func'].__name__ + str(self.tasks[task]['argv']))
                         self.tasks[task]['func'](*(self.tasks[task]['argv']))
                     elif callable(eval(self.tasks[task]['func'])):
-                        self.LOG.info("It is time to run %s: " % (
-                            task) + self.tasks[task]['func'] + str(self.tasks[task]['argv']))
+                        # self.LOG.info("It is time to run %s: " % (
+                        #    task) + self.tasks[task]['func'] + str(self.tasks[task]['argv']))
                         eval(self.tasks[task]['func'] + '(*' +
                              str(self.tasks[task]['argv']) + ')')
                     else:

@@ -43,7 +43,7 @@ class CommMethod(Base):
             # 数据库清理
             cmds = ['delete from TABLE_WIFI_DEVICE;',
                     'delete from TABLE_ZIGBEE_DEVICE;']
-            #result = self.get_router_db_info(cmds)
+            result = self.get_router_db_info(cmds)
 
             # 数据库查询
             cmds = ['select * from table_user_list;',
@@ -72,7 +72,7 @@ class CommMethod(Base):
             "family_name": self.config_file.get("router_db", "family_name"),
             "phone": self.config_file.get("router_db", "phone"),
             "device_uuid": self.config_file.get("router_db", "device_uuid"),
-            "router_id": self.config_file.get("router_db", "router_id"),
+            "router_id": int(self.config_file.get("router_db", "router_id")),
             "token": self.config_file.get("app", "token"),
         }
 
@@ -683,16 +683,16 @@ class CommMethod(Base):
             pass
         else:
             self.telnet.connect()
-        info_str=self.telnet.send('cat /log/*|grep %s' %(method))
+        info_str = self.telnet.send('cat /log/*|grep %s' % (method))
         for item_info in info_str.split('\n'):
-            #self.LOG.debug(item_info)
-            if re.search(role,item_info):
-                #self.LOG.debug(item_info)
-                last_server_package=item_info
+            # self.LOG.debug(item_info)
+            if re.search(role, item_info):
+                # self.LOG.debug(item_info)
+                last_server_package = item_info
         for item_package in last_server_package.split():
-            #self.LOG.debug(item_package)
-            key_word="""{"method"""
-            index=item_package.find(key_word,0)
+            # self.LOG.debug(item_package)
+            key_word = """{"method"""
+            index = item_package.find(key_word, 0)
             if index != -1:
                 self.LOG.debug(item_package[index:])
                 return item_package[index:]

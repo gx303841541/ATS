@@ -29,7 +29,7 @@ from protocol.protocol_process import communication_base
 class Wifi(communication_base):
     state_lock = threading.Lock()
 
-    def __init__(self, addr, logger, sim_obj, mac='123456', deviceCategory='airconditioner.new'):
+    def __init__(self, addr, logger, sim_obj, time_delay=0.5, mac='123456', deviceCategory='airconditioner.new'):
         self.queue_in = Queue.Queue()
         self.queue_out = Queue.Queue()
         super(Wifi, self).__init__(self.queue_in, self.queue_out,
@@ -38,6 +38,7 @@ class Wifi(communication_base):
         self.name = 'WIFI module'
         self.connection = my_socket.MyClient(addr, logger)
         self.state = 'close'
+        self.time_delay = time_delay
         self.sim_obj = sim_obj
         self.sim_obj.wifi_obj = self
 
@@ -175,6 +176,7 @@ class Wifi(communication_base):
             final_rsp_msg = ''
             for rsp_msg in rsp_msg_list:
                 final_rsp_msg += self.msg_build(rsp_msg)
+            time.sleep(self.time_delay / 1000.0)
             return final_rsp_msg
 
         else:

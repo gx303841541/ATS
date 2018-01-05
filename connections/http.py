@@ -29,27 +29,27 @@ class Http():
         return self.httpsend(json.dumps(msg_on))
 
     #路由器密码设置
-    def setRouterPassword(self):
+    def setRouterPassword(self,password='123123'):
         num=random.randint(100, 9999999)
         msg_on = {
             "method": "setRouterPassword",
             "req_id": '+str(num)+',
             "timestamp": 1498111457196,
             "params": {
-                "password": 123123,
+                "password": password,
             }
         }
         return self.httpsend(json.dumps(msg_on))
 
     #路由器密码验证
-    def verifyRouterPassword(self):
+    def verifyRouterPassword(self,password="12345678"):
         num=random.randint(100, 9999999)
         msg_on = {
             "method": "verifyRouterPassword",
             "req_id": '+str(num)+',
             "timestamp": 1498111457196,
             "params": {
-                "password": 123123,
+                "password": password,
             }
         }
         return self.httpsend(json.dumps(msg_on))
@@ -73,8 +73,8 @@ class Http():
             "req_id": '+str(num)+',
             "timestamp": 1498111457196,
             "params": {
-                "primary_dns":"foo",
-                "second_dns":"foo",
+                "primary_dns":"192.168.88.108",
+                "second_dns":"192.168.88.108",
             }
         }
         return self.httpsend(json.dumps(msg_on))
@@ -101,11 +101,11 @@ class Http():
             "req_id": '+str(num)+',
             "timestamp": 1498111457196,
             "params": {
-                "ip":"foo",
-                "mask":"foo",
-                "gateway":"foo",
-                "primary_dns":"foo",
-                "second_dns":"foo",
+                "ip":"172.18.151.222",
+                "mask":"255.255.254.0",
+                "gateway":"172.18.151.254",
+                "primary_dns":"192.168.88.108",
+                "second_dns":"192.168.88.108",
             }
         }
         return self.httpsend(json.dumps(msg_on))
@@ -131,8 +131,8 @@ class Http():
             "timestamp": 1498111457196,
             "params": {
                 "enable":1,
-                "SSID": "FOO",
-                "password":"123123",
+                "SSID": ssid,
+                "password":password,
                 "hide":0
             }
         }
@@ -170,6 +170,36 @@ class Http():
         return self.httpsend(json.dumps(msg_on))
 
 
+    def setGuestSSIDConfig(self):
+        num=random.randint(100, 9999999)    
+        msg_on = {
+            "method": "setGuestSSIDConfig",
+            "req_id": 178237278,
+            "timestamp": 1498111457196,
+            "params": {
+                "enable":1,
+                "SSID": "FOO_Guest",
+                "password":"12345678",
+                "hide":0,
+            }     
+        }
+        return self.httpsend(json.dumps(msg_on))
+        
+    def setIPMacBinding(self):
+        num=random.randint(100, 9999999)    
+        msg_on = {
+            "method": "setIPMacBinding",
+            "req_id": 178237278,
+            "timestamp": 1498111457196,
+            "params": {
+                "ip": "192.168.10.107",
+                "mac": "20:11:22:33:44:55",
+                "name": "guest room tv",
+                "enable": 1,
+            }     
+        }
+        return self.httpsend(json.dumps(msg_on))        
+        
     def send(self, msg_on={}):
         return self.httpsend(json.dumps(msg_on))
 
@@ -186,7 +216,7 @@ class Http():
 if __name__ == '__main__':
     a = Http()
 
-    s = a.setSSIDConfig_5G(ssid='BeeBox_1717', password='12345678')
+    s = a.setSSIDConfig(ssid='BeeBox_0606', password='12345678')
     if s:
         print repr(s)
     else:

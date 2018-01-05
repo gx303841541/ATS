@@ -5,13 +5,14 @@
 by Kobe Gong. 2017-9-11
 """
 
-import os
-import logging
 import datetime
+import logging
+import os
 import re
 import sys
 import time
 from abc import ABCMeta, abstractmethod
+
 import serial
 import serial.tools.list_ports
 
@@ -26,7 +27,14 @@ class MySerial():
         self.com = None
         self.user = user
         self.password = password
-        #self.LOG.debug("Create serial obj for : %s" % (port))
+        self.connected = False
+
+    def get_connected(self):
+        return self.connected
+
+    #@common_APIs.need_add_lock(state_lock)
+    def set_connected(self, value):
+        self.connected = value
 
     def get_available_ports(self):
         port_list = list(serial.tools.list_ports.comports())
@@ -62,17 +70,19 @@ class MySerial():
                         self.write('\n')
                         a = self.readlines()
                         self.LOG.debug(str(a))
-                        if  re.search('root@OpenWrt:~# ',str(a)):
+                        if re.search('root@OpenWrt:~# ', str(a)):
                             break
-                        elif re.search('OpenWrt login: ',str(a)):
+                        elif re.search('OpenWrt login: ', str(a)):
                             self.send(self.user)
                             a = self.readlines()
                             self.LOG.debug(str(a))
                             self.send(self.password)
                             a = self.readlines()
                             self.LOG.debug(str(a))
-                            self.LOG.debug("port: %s open success" % (self.port))
+                            self.LOG.debug(
+                                "port: %s open success" % (self.port))
                             break
+                        self.set_connected(True)
             else:
                 self.LOG.error("Can't open %s!" % (self.port))
                 return False
@@ -143,8 +153,8 @@ class Robot():
         if not self.serial.is_open():
             self.serial.open()
             self.serial.read()
-        #self.serial.write('O')
-        #self.serial.read()
+        # self.serial.write('O')
+        # self.serial.read()
         self.serial.close()
 
     def close(self, ):

@@ -34,7 +34,7 @@ class Air(communication_base):
                                   queue_out=Queue.Queue(), logger=logger, left_data='', min_length=13)
         self.port = port
         self.name = port
-        self.serial = MySerial(port, baudrate, logger)
+        self.connection = MySerial(port, baudrate, logger)
         self.msg_statistics = defaultdict(int)
         self.state = 'close'
 
@@ -511,11 +511,10 @@ class Air(communication_base):
     @common_APIs.need_add_lock(state_lock)
     def connection_setup(self):
         self.LOG.warn('Try to open port %s...' % (self.port))
-        if self.serial.is_open():
+        if self.connection.is_open():
             self.LOG.info('Connection already setup!')
             return True
-        elif self.serial.open():
-            self.connection = self.serial
+        elif self.connection.open():
             self.set_connection_state('online')
             self.LOG.info('Setup connection success!')
             return True
@@ -525,7 +524,7 @@ class Air(communication_base):
             return False
 
     def connection_close(self):
-        if self.serial.close():
+        if self.connection.close():
             self.connection = None
             self.set_connection_state('offline')
         else:
