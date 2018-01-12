@@ -5,33 +5,36 @@
    by Kobe Gong. 2017-8-25
 """
 
-import re
-import random
-import sys
-import time
-import os
-import shutil
 import datetime
-import threading
+import decimal
 import functools
 import logging
-import decimal
+import os
+import random
+import re
+import shutil
 import subprocess
+import sys
+import threading
+import time
+
+import APIs.common_APIs as common_APIs
+from APIs.common_APIs import (my_system, my_system_full_output,
+                              my_system_no_check)
+from basic.cprint import cprint
+
 if sys.platform == 'linux':
     import configparser as ConfigParser
 else:
     import ConfigParser
 
-from basic.cprint import cprint
-import APIs.common_APIs as common_APIs
-from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output
 
 #suite_lock = threading.Lock()
 
 
 # ATS use this to manage a suite
 class Suite():
-    def __init__(self, config_file, id, name, cases, sub_suites, dirstr):
+    def __init__(self, config_file, id, name, cases=[], sub_suites=[], dirstr=''):
         self.config_file = config_file
         self.cprint = cprint(__name__)
         self.id = id
@@ -133,9 +136,22 @@ class Suite():
         #self.cprint.yinfo_p("Oh, son stop!")
 
     def my_grandson(self, *arg):
+        tmp_suite_dir = 'tmp_suite'
+
+        '''if self.dirstr:
+            try:
+                if os.path.exists(tmp_suite_dir):
+                    shutil.rmtree(tmp_suite_dir)
+            except Exception as er:
+                self.cprint.error_p("Something wrong!!![%s]" % (er))'''
+
+        for dirs in self.dirstr.split():
+            common_APIs.dir_copy(dirs, tmp_suite_dir)
+
         cmd_result = my_system_no_check("nosetests {} -v -s --exe --with-id --with-xunit --xunit-file={} --with-html-output --html-out-file={} 2>{}".format(
-        self.dirstr, self.suite_log_dir + 'result.xml', self.suite_log_dir + 'result.html', self.suite_log_dir + 'stdout.log'))
+            tmp_suite_dir, self.suite_log_dir + 'result.xml', self.suite_log_dir + 'result.html', self.suite_log_dir + 'stdout.log'))
         self.need_stop = True
+
         #self.cprint.notice_p("Oh, grandson stop!")
 
     def run(self):

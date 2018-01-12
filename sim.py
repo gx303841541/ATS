@@ -258,6 +258,23 @@ class AirSim(BaseSim):
                     }
                 }
                 return [json.dumps(rsp_msg)]
+            if msg['nodeid'] == u"airconditioner.main.all_properties":
+                self.LOG.warn("获取所有属性".decode('utf-8').encode(coding))
+                rsp_msg = {
+                    "method": "dm_get",
+                    "req_id": msg['req_id'],
+                    "msg": "success",
+                    "code": 0,
+                    "attribute": {
+                        "switchStatus": self._switchStatus,
+                        "temperature": self._temperature,
+                        "mode": self._mode,
+                        "speed": self._speed,
+                        "wind_up_down": self._wind_up_down,
+                        "wind_left_right": self._wind_left_right
+                    }
+                }
+                return [json.dumps(rsp_msg)]
             else:
                 self.LOG.warn('TODO in the feature!')
 
@@ -1022,7 +1039,7 @@ class Washer(BaseSim):
 
 
 if __name__ == '__main__':
-    LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.DEBUG,
+    LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.INFO,
                    rlevel=logging.WARN)
     cprint = cprint(__name__)
 

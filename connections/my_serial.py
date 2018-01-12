@@ -177,15 +177,17 @@ class Wifi():
         self.LOG = logger
         self.port = port
         self.baudrate = baudrate
-        self.serial = MySerial(
-            port=self.port, baudrate=self.baudrate, logger=self.LOG)
+        # self.serial = MySerial(
+        #    port=self.port, baudrate=self.baudrate, logger=self.LOG)
 
     def wifi_access_net(self, open_close_time=6):
+        return
         if not self.serial.is_open():
             self.serial.open()
         self.serial.send('clrcfg')
         self.serial.send('reboot')
 
     def wifi_close(self):
+        return
         if self.serial.is_open():
             self.serial.close()

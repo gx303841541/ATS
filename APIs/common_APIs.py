@@ -6,15 +6,15 @@ use:
     all the funcs can be used by any module should be here
 """
 
+import functools
+import hashlib
+import os
+import re
+import struct
+import sys
 #import queue, fcntl
 import threading
-import re
-import os
-import sys
 from subprocess import *
-import functools
-import struct
-import hashlib
 
 
 '''
@@ -100,7 +100,7 @@ def dir_copy(source_dir, target_dir):
 
         if os.path.isfile(sourceF):
             # 创建目录
-            if not os.path.exists(targetF):
+            if not os.path.exists(target_dir):
                 os.makedirs(target_dir)
 
             # 文件不存在，或者存在但是大小不同，覆盖
@@ -166,6 +166,7 @@ def get_md5(strtext):
     m2 = hashlib.md5()
     m2.update(strtext)
     return str(m2.hexdigest())
+
 
 def find_max(str_list):
     max_str = '0'

@@ -7,35 +7,39 @@ use:
     go into ATS'CLI
 """
 
-import re
-import sys
-import time
-import os
-import shutil
+import argparse
 import datetime
-import threading
+import decimal
+import json
+import logging
+import os
 import random
+import re
+import shutil
 import signal
 import subprocess
-import argparse
-import logging
+import sys
+import threading
+import time
+from cmd import Cmd
+
+from cowpy import cow
+
+import APIs.common_APIs as common_APIs
+import router_msg.diy
+from APIs.common_APIs import (my_system, my_system_full_output,
+                              my_system_no_check)
+from basic.case import Case
+from basic.cprint import cprint
+from basic.log_tool import MyLogger
+from basic.suite import Suite
+
 if sys.platform == 'linux':
     import configparser as ConfigParser
     import queue as Queue
 else:
     import ConfigParser
     import Queue
-from cmd import Cmd
-import decimal
-
-from cowpy import cow
-
-from basic.log_tool import MyLogger
-from basic.cprint import cprint
-from basic.suite import Suite
-from basic.case import Case
-import APIs.common_APIs as common_APIs
-from APIs.common_APIs import my_system_no_check, my_system, my_system_full_output
 
 
 class ArgHandle():
@@ -231,8 +235,12 @@ class MyCmd(Cmd):
                 cprint.error_p("No case found or something unknow happen!")
                 return 1
 
-            cases = re.split(r'[\r\n]+(?=#\d+)', log_list[0], maxsplit=0)
+            tmp_cases = re.split(r'[\r\n]+(?=#\d+)', log_list[0], maxsplit=0)
             # cases = re.findall(r'(#\d+\s+.*?[\r\n]+(?:ok|FAIL|ERROR))', log_list[0], re.S)
+            cases = []
+            for item in tmp_cases:
+                if re.search(r'#\d+', item):
+                    cases.append(item)
 
             cprint.debug_p('Total cases: ' + str(len(cases)))
 
@@ -262,20 +270,20 @@ class MyCmd(Cmd):
                     continue
 
                 if result == 'ok':
-                    result = 'pass'
+                    result = 'PASS'
                     pass_cases += 1
                     cprint.notice_p(r.group('index').ljust(
                         5) + ': ' + r.group('name').ljust(60, '.') + result)
                 else:
-                    #result = 'fail'
+                    # result = 'fail'
                     fail_cases += 1
                     fail_list.append(r.group('name') + '.py')
                     cprint.error_p(r.group('index').ljust(
                         5) + ': ' + r.group('name').ljust(60, '.') + result)
-                self.cases[self.__get_id_by_name(
-                    r.group('name') + '.py')].set_case_result(result)
-                self.cases[self.__get_id_by_name(
-                    r.group('name') + '.py')].set_case_state('done')
+                # self.cases[self.__get_id_by_name(
+                #    r.group('name') + '.py')].set_case_result(result)
+                # self.cases[self.__get_id_by_name(
+                #    r.group('name') + '.py')].set_case_state('done')
 
             # add fail cases to related suite
             if fail_cases:
@@ -295,14 +303,35 @@ class MyCmd(Cmd):
                     cprint.common_p('Success Rate:'.ljust(20) + '0.00%')
 
     def do_srun(self, arg, opts=None):
-        suite_id_list = re.findall(r'(\d+)', arg, re.M)
+        tmp_suite_dir = 'tmp_suite'
+        try:
+            if os.path.exists(tmp_suite_dir):
+                cprint.debug_p("To clear dir: %s" % (tmp_suite_dir))
+                shutil.rmtree(tmp_suite_dir)
+                os.makedirs(tmp_suite_dir)
+        except Exception as er:
+            cprint.error_p("Something wrong!!![%s]" % (er))
+            return False
+
+        tmp_arg = ''
+        suite_mix = re.findall(r'(\w+)', arg, re.M)
+        suite_id_list = []
+        for item in suite_mix:
+            if not re.match(r'^\d+$', item):
+                tmp_arg += item + ' '
+            if re.match(r'^\d+$', item):
+                suite_id_list.append(item)
+        if tmp_arg:
+            self.ndo_mrun(arg=tmp_arg)
+
         suites = []
         suite = ''
         if suite_id_list:
             for id in suite_id_list:
                 if id in self.suites:
                     suites.append(self.suites[id])
-                    cprint.yinfo_p("Found suite ID: %s, name: %s" % (id, self.suites[id].get_suite_name()))
+                    cprint.yinfo_p("Found suite ID: %s, name: %s" %
+                                   (id, self.suites[id].get_suite_name()))
                 else:
                     cprint.error_p("unknow suite ID: %s" % id)
 
@@ -324,13 +353,184 @@ class MyCmd(Cmd):
 
             if len(suites) > 1:
                 self.suite_name_to_id[suite.get_suite_name()] = id_sum
-            cprint.yinfo_p("Run suite ID: %s, name: %s" % (id_sum, suite.get_suite_name()))
+            cprint.yinfo_p("Run suite ID: %s, name: %s" %
+                           (id_sum, suite.get_suite_name()))
             self.last_suite = suite
             suite.run()
             self.__faild_cases_proc(suite.suite_log_dir + 'stdout.log')
 
+        elif tmp_arg:
+            new_suite = self.last_suite
+            new_suite.run()
+            self.__faild_cases_proc(new_suite.suite_log_dir + 'stdout.log')
+
         else:
             cprint.error_p("unknow arg: %s" % arg)
+
+    def nhelp_mrun(self):
+        cprint.common_p("run suites created by yourself, good luck!")
+
+    def ndo_mrun(self, arg, opts=None):
+        tmp_suite_dir = 'tmp_suite'
+        '''try:
+            if os.path.exists(tmp_suite_dir):
+                cprint.debug_p("To clear dir: %s" % (tmp_suite_dir))
+                shutil.rmtree(tmp_suite_dir)
+                os.makedirs(tmp_suite_dir)
+        except Exception as er:
+            cprint.error_p("Something wrong!!![%s]" % (er))
+            return False'''
+
+        reload(router_msg.diy)
+        suite_id_list = re.findall(r'(\w+)', arg, re.M)
+
+        if suite_id_list:
+            for suite in suite_id_list:
+                if suite in router_msg.diy.DIY.__dict__:
+                    cprint.yinfo_p("Found suite: %s" % (suite))
+                    if self.create_cases(router_msg.diy.DIY.__dict__[suite], suite):
+                        pass
+                    else:
+                        cprint.error_p(
+                            "Create cases for suite: %s fail!" % (suite))
+                else:
+                    cprint.error_p("Not found suite: %s" % (suite))
+                    return
+        else:
+            cprint.error_p("What unknow arg: %s" % arg)
+
+        id_sum = str(int(common_APIs.find_max(self.suites.keys())) + 1)
+        new_suite = Suite(config_file=self.config_file,
+                          id=id_sum, name='diy_suite')
+        self.suites[id_sum] = new_suite
+        self.suites[id_sum].id = id_sum
+        self.suite_name_to_id[new_suite.get_suite_name()] = id_sum
+        cprint.yinfo_p("Run suite ID: %s, name: %s" %
+                       (id_sum, new_suite.get_suite_name()))
+        self.last_suite = new_suite
+        # new_suite.run()
+        #self.__faild_cases_proc(new_suite.suite_log_dir + 'stdout.log')
+
+    def create_cases(self, suite, suite_name):
+        caseids = []
+        for casename in suite:
+            # cprint.error_p(casename)
+            if casename.startswith('case'):
+                caseid = random.randint(0, 99999999)
+                while caseid in caseids:
+                    caseid = random.randint(0, 99999999)
+                self.create_case(suite, suite_name, casename, caseid)
+
+        return True
+
+    def convert_to_dictstr(self, src):
+        if isinstance(src, dict):
+            return json.dumps(src, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
+
+        elif isinstance(src, str):
+            return json.dumps(json.loads(src), sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
+
+        else:
+            LOG.error('Unknow type(%s): %s' % (src, str(type(src))))
+            return None
+
+    def create_case(self, suite, suite_name, case, caseid):
+        tmp_suite_dir = 'tmp_suite'
+
+        if not os.path.exists(tmp_suite_dir):
+            os.makedirs(tmp_suite_dir)
+
+        name = tmp_suite_dir + os.path.sep + \
+            'ats_%08d_%s_%s_test.py' % (caseid, suite_name, case)
+        cprint.debug_p("To create case: %s" % (name))
+        with open(name, 'w') as file:
+
+            # head
+            head = '''# -*- coding: utf-8 -*-
+import datetime
+import json
+import os
+import random
+import re
+import sys
+import time
+
+import APIs.common_methods as common_methods
+from APIs.common_APIs import register_caseid
+
+
+@register_caseid(casename=__name__)
+class Test(common_methods.CommMethod):
+    def run(self):'''
+            
+            
+            setup = ''''''
+            for func in suite[case]['setup']:
+                setup += '''
+        if self.%s:
+            pass
+        else:
+            return self.case_fail("setup fail!")
+''' % (func)
+
+            # send_msg
+            send_msg = '''
+
+        msg = %s''' % (re.sub(r'"===|==="', '', self.convert_to_dictstr(suite[case]['request'])))
+            
+            
+            send_msg += '''
+        # send msg to router
+        if self.socket_send_to_router(json.dumps(msg) + '\\n'):
+            pass
+        else:
+            return self.case_fail("Send msg to router failed!")'''
+
+            # recv_msg
+            recv_msg = '''
+
+        # recv msg from router
+        data = self.socket_recv_from_router(timeout=%d)
+        if data:
+            dst_package = self.get_package_by_keyword(
+                data, ['%s', 'result'], except_keyword_list=['mdp_msg'])
+            for msg in dst_package:
+                self.LOG.warn(self.convert_to_dictstr(msg))
+            self.LOG.debug(self.convert_to_dictstr(dst_package[0]))
+        else:
+            return self.case_fail("timeout, server no response!")''' % (suite[case]['waittime'], suite[case]['request']['content']['method'])
+
+            # msg_check
+            msg_check = '''
+
+        # msg check
+        template = %s
+        if self.json_items_compare(template, dst_package[0]):
+            pass
+        else:
+            return self.case_fail("msg check failed!")''' % (re.sub(r'"===|==="', '', self.convert_to_dictstr(suite[case]['expect_response'])))
+
+            # db_check
+            db_check = '''
+
+        # DB check
+        if not self.router_db_check(para_dict=%s):
+            return self.case_fail("DB check fail!")
+        return self.case_pass()''' % (suite[case]['db_check'])
+
+            teardown = '''
+
+    def teardown(self):'''
+
+            for func in suite[case]['teardown']:
+                teardown += '''
+        self.%s
+''' % (func)
+            teardown += '''
+        super(Test, self).teardown()
+            '''
+            for item in [head, setup, send_msg, recv_msg, msg_check, db_check, teardown]:
+                file.write(item)
 
     def help_runagain(self):
         cprint.common_p("run last failed cases again")

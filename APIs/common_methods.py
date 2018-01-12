@@ -43,7 +43,7 @@ class CommMethod(Base):
             # 数据库清理
             cmds = ['delete from TABLE_WIFI_DEVICE;',
                     'delete from TABLE_ZIGBEE_DEVICE;']
-            result = self.get_router_db_info(cmds)
+            #result = self.get_router_db_info(cmds)
 
             # 数据库查询
             cmds = ['select * from table_user_list;',
@@ -94,9 +94,8 @@ class CommMethod(Base):
         self.serial.send('.exit')
         info_list = self.serial.readlines()
         info_str = ''.join(info_list)
-
         a = re.findall(
-            u'(\w+)\s*=\s*((?:\S)+)', info_str, re.M)
+            u'(\w+)\s*=[ \t\f\v]*((?:\S)*)', info_str, re.M)
         result_dict = {}
         for name, value in a:
             result_dict[name] = value
@@ -104,6 +103,19 @@ class CommMethod(Base):
         result_str = re.sub(r'\[\d+\.\d+\].*$', '', info_str, re.M)
         self.LOG.debug(self.convert_to_dictstr(result_dict))
         return result_str, result_dict
+
+    def router_db_check(self, para_dict={}, db='/db/iot_new_router.db'):
+        for table in para_dict:
+            cmd = ['select * from ' + table + ';']
+            result_str, result_dict = self.get_router_db_info(cmd)
+            for dst_str in para_dict[table]:
+                if re.search(r'%s' % dst_str, result_str):
+                    pass
+                else:
+                    self.LOG.error("Not find %s in: %s" %
+                                   (dst_str, result_str))
+                    return False
+        return True
 
     # select router DB, will return a dict
     def get_router_db_info_dict(self, cmds, db='/db/iot_new_router.db', mode_line=True, separator='\n'):
