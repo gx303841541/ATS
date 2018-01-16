@@ -3,9 +3,9 @@
 """
 msg for room homepage management
 """
+import json
 import re
 import sys
-import json
 import time
 
 
@@ -19,14 +19,14 @@ class API_room_homepage_management():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": "dm_sort_shortcut",
-            	"timestamp": 1490229730,
-            	"req_id": 123,
-            	"params": {
-            		"family_id": common_para_dict["family_id"],
-            		"room_id": common_para_dict["room_id"],
-            		"user_id": common_para_dict["user_id"],
-            		"list": shortcut_list,
+                "method": "dm_sort_shortcut",
+                "timestamp": 1490229730,
+                "req_id": 123,
+                "params": {
+                    "family_id": common_para_dict["family_id"],
+                    "room_id": common_para_dict["room_id"],
+                    "user_id": common_para_dict["user_id"],
+                    "list": shortcut_list,
                 }
             }
         }
@@ -42,9 +42,13 @@ class API_room_homepage_management():
                 "timestamp": 1498111457196,
                 "req_id": 178237278,
                 "params": {
-            		"family_id": common_para_dict["family_id"],
-            		"room_id": common_para_dict["room_id"],
-            		"user_id": common_para_dict["user_id"],
+                    "family_id": common_para_dict["family_id"],
+                    "room_id": common_para_dict["room_id"],
+                    "user_id": common_para_dict["user_id"],
+                    "page": {
+                        "size": 10,
+                        "begin": 0
+                    }
                 }
             }
         }
@@ -65,14 +69,13 @@ class API_room_homepage_management():
                 "req_id": 178237278,
                 "timestamp": 1498111457196,
                 "params": {
-            		"family_id": common_para_dict["family_id"],
-            		"room_id": common_para_dict["room_id"],
-            		"user_id": common_para_dict["user_id"],
+                    "family_id": common_para_dict["family_id"],
+                    "room_id": common_para_dict["room_id"],
+                    "user_id": common_para_dict["user_id"],
                     "name": name,
                     "device_uuid": common_para_dict["device_uuid"],
                     "device_category_id": device_category_id,
                     "order": order,
-                    "mode": mode,
                     "attribute": attribute
                 }
             }
@@ -89,9 +92,9 @@ class API_room_homepage_management():
                 "req_id": 178237278,
                 "timestamp": 1494916080598,
                 "params": {
-            		"family_id": common_para_dict["family_id"],
-            		"room_id": common_para_dict["room_id"],
-            		"user_id": common_para_dict["user_id"],
+                    "family_id": common_para_dict["family_id"],
+                    "room_id": common_para_dict["room_id"],
+                    "user_id": common_para_dict["user_id"],
                     "shortcut_id": shortcut_id
                 }
             }
@@ -108,8 +111,8 @@ class API_room_homepage_management():
                 "req_id": 178237278,
                 "timestamp": 1498111457196,
                 "params": {
-            		"family_id": common_para_dict["family_id"],
-            		"user_id": common_para_dict["user_id"],
+                    "family_id": common_para_dict["family_id"],
+                    "user_id": common_para_dict["user_id"],
                 }
             }
         }
@@ -125,11 +128,11 @@ class API_room_homepage_management():
                 "req_id": 178237278,
                 "timestamp": 1498111457196,
                 "params": {
-            		"family_id": common_para_dict["family_id"],
+                    "family_id": common_para_dict["family_id"],
                     "user_id": common_para_dict["user_id"],
-            		"room_id": common_para_dict["room_id"],
+                    "room_id": common_para_dict["room_id"],
                     "name": u"总开关",
-                    "content": device_list
+                    "content": device_list,
                 }
             }
         }
@@ -141,27 +144,27 @@ class API_room_homepage_management():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": "dm_set_total_control",
-            	"req_id": 178237278,
-            	"timestamp": 1498111457196,
-            	"params": {
-            		"family_id": common_para_dict["family_id"],
-            		"room_id": common_para_dict["room_id"],
-            		"user_id": common_para_dict["user_id"],
-            		"mode": "on",
-            		"data": [{
-            			"method": "dm_set",
-            			"req_id": 178237278,
-            			"timestamp": 123456789,
-            			"nodeid": "bulb.main.switch",
-            			"params": {
-            				"device_uuid": common_para_dict["device_uuid"],
-            				"attribute": {
-            					"switch": offon
-            				}
-            			}
-            		}]
-        	    }
+                "method": "dm_set_total_control",
+                "req_id": 178237278,
+                "timestamp": 1498111457196,
+                "params": {
+                    "family_id": common_para_dict["family_id"],
+                    "room_id": common_para_dict["room_id"],
+                    "user_id": common_para_dict["user_id"],
+                    "mode": "on",
+                    "data": [{
+                        "method": "dm_set",
+                        "req_id": 178237278,
+                        "timestamp": 123456789,
+                        "nodeid": "bulb.main.switch",
+                        "params": {
+                            "device_uuid": common_para_dict["device_uuid"],
+                            "attribute": {
+                                "switch": offon
+                            }
+                        }
+                    }]
+                }
             }
         }
         return msg
@@ -172,28 +175,28 @@ class API_room_homepage_management():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": "dm_set_light_control",
-            	"req_id": 178237278,
-            	"timestamp": 1498111457196,
-            	"params": {
-            		"family_id": common_para_dict["family_id"],
-            		"room_id": common_para_dict["room_id"],
-            		"user_id": common_para_dict["user_id"],
-            		"mode": "on",
-            		"level": 75,
-            		"data": [{
-            			"method": "dm_set",
-            			"req_id": 178237278,
-            			"timestamp": 123456789,
-            			"nodeid": "bulb.main.switch",
-            			"params": {
-            				"device_uuid": common_para_dict["device_uuid"],
-            				"attribute": {
-            					"switch": offon
-            				}
-            			}
-            		}]
-	            }
+                "method": "dm_set_light_control",
+                "req_id": 178237278,
+                "timestamp": 1498111457196,
+                "params": {
+                    "family_id": common_para_dict["family_id"],
+                    "room_id": common_para_dict["room_id"],
+                    "user_id": common_para_dict["user_id"],
+                    "mode": "on",
+                    "level": 75,
+                    "data": [{
+                        "method": "dm_set",
+                        "req_id": 178237278,
+                        "timestamp": 123456789,
+                        "nodeid": "bulb.main.switch",
+                        "params": {
+                            "device_uuid": common_para_dict["device_uuid"],
+                            "attribute": {
+                                "switch": offon
+                            }
+                        }
+                    }]
+                }
             }
         }
         return msg
@@ -204,13 +207,13 @@ class API_room_homepage_management():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": "dm_get_shortcut_mode",
-            	"req_id": 178237278,
-            	"timestamp": 1498111457196,
-            	"params": {
-            		"family_id": common_para_dict["family_id"],
-            		"room_id": common_para_dict["room_id"],
-            	}
+                "method": "dm_get_shortcut_mode",
+                "req_id": 178237278,
+                "timestamp": 1498111457196,
+                "params": {
+                    "family_id": common_para_dict["family_id"],
+                    "room_id": common_para_dict["room_id"],
+                }
             }
         }
         return msg
@@ -221,14 +224,14 @@ class API_room_homepage_management():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": "dm_set_shortcut_mode",
-            	"req_id": 178237278,
-            	"timestamp": 1498111457196,
-            	"params": {
-            		"family_id": common_para_dict["family_id"],
-            		"room_id": common_para_dict["room_id"],
-            		"mode": mode
-            	}
+                "method": "dm_set_shortcut_mode",
+                "req_id": 178237278,
+                "timestamp": 1498111457196,
+                "params": {
+                    "family_id": common_para_dict["family_id"],
+                    "room_id": common_para_dict["room_id"],
+                    "mode": mode
+                }
             }
         }
         return msg

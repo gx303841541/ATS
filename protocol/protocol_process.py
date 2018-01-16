@@ -9,7 +9,6 @@ import binascii
 import datetime
 import logging
 import os
-import Queue
 import re
 import struct
 import sys
@@ -21,6 +20,12 @@ from collections import defaultdict
 import APIs.common_APIs as common_APIs
 from APIs.common_APIs import protocol_data_printB
 
+if sys.platform == 'linux':
+    import queue as Queue
+else:
+    import Queue
+
+
 if sys.getdefaultencoding() != 'utf-8':
     reload(sys)
     sys.setdefaultencoding('utf-8')
@@ -29,7 +34,7 @@ if sys.getdefaultencoding() != 'utf-8':
 class communication_base(object):
     send_lock = threading.Lock()
 
-    def __init__(self, queue_in, queue_out, logger, left_data='', min_length=10):
+    def __init__(self, queue_in, queue_out, logger, left_data=b'', min_length=10):
         self.queue_in = queue_in
         self.queue_out = queue_out
         self.LOG = logger
@@ -37,6 +42,8 @@ class communication_base(object):
         self.min_length = min_length
         self.connection = ''
         self.name = 'some guy'
+        self.heartbeat_interval = 3
+        self.heartbeat_data = '0'
 
     @abstractmethod
     def protocol_handler(self, msg):
@@ -137,13 +144,14 @@ class communication_base(object):
                     continue
             self.recv_data_once()
 
-    def heartbeat_loop(self, heartbeat_interval=3, heartbeat_data='0'):
+    def heartbeat_loop(self):
         while True:
             if self.get_connection_state():
-                self.send_data_once(data=heartbeat_data)
+                self.LOG.yinfo(self.heartbeat_data)
+                self.send_data_once(data=self.heartbeat_data)
             else:
                 self.LOG.debug('offline?')
-            time.sleep(heartbeat_interval)
+            time.sleep(self.heartbeat_interval)
 
     def schedule_loop(self):
         while True:

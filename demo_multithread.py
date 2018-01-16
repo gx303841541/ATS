@@ -22,7 +22,7 @@ from cmd import Cmd
 from collections import defaultdict
 
 import APIs.common_APIs as common_APIs
-import my_socket.my_socket as my_socket
+import connections.my_socket as my_socket
 from APIs.common_APIs import (my_system, my_system_full_output,
                               my_system_no_check, protocol_data_printB)
 from basic.cprint import cprint
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
     server = my_socket.MyServer(('', 8888), LOG, debug=True, printB=False)
     thread_list.append([server.run_forever])
-    thread_list.append([server.sendloop])
+    # thread_list.append([server.sendloop])
 
     # run threads
     sys_proc()

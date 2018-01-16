@@ -3,9 +3,9 @@
 """
 msg for device control
 """
+import json
 import re
 import sys
-import json
 import time
 
 
@@ -23,10 +23,10 @@ class API_device_control():
                 "req_id": 456,
                 "timestamp": 123456789,
                 "nodeid": "bulb.main.switch",
-                "params":{
-            		"user_id": common_para_dict["user_id"],
+                "params": {
+                    "user_id": common_para_dict["user_id"],
                     "device_uuid": common_para_dict["device_uuid"],
-                    "attribute":{
+                    "attribute": {
                         "switch": on_off
                     }
                 }
@@ -40,19 +40,19 @@ class API_device_control():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": "dm_set",
-            	"req_id": 178237278,
-            	"timestamp": 123456789,
-            	"nodeid": "bulb.main.level",
-            	"params": {
-            		"user_id": common_para_dict["user_id"],
+                "method": "dm_set",
+                "req_id": 178237278,
+                "timestamp": 123456789,
+                "nodeid": "bulb.main.level",
+                "params": {
+                    "user_id": common_para_dict["user_id"],
                     "device_uuid": common_para_dict["device_uuid"],
-            		"attribute": {
-            			"level": level,
+                    "attribute": {
+                        "level": level,
                         "transition_time": 10,
                         "need_confirm": 'false'
-            		}
-            	}
+                    }
+                }
             }
         }
         return msg
@@ -63,22 +63,22 @@ class API_device_control():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": "dm_set",
-            	"req_id": 178237278,
-            	"timestamp": 123456789,
-            	"nodeid": "bulb.main.rgb",
-            	"params": {
-            		"user_id": common_para_dict["user_id"],
+                "method": "dm_set",
+                "req_id": 178237278,
+                "timestamp": 123456789,
+                "nodeid": "bulb.main.rgb",
+                "params": {
+                    "user_id": common_para_dict["user_id"],
                     "family_id": common_para_dict["family_id"],
                     "device_uuid": common_para_dict["device_uuid"],
-            		"attribute": {
+                    "attribute": {
                         "r": rgb['r'],
                         "g": rgb['g'],
                         "b": rgb['b'],
                         "transition_time": 2,
                         "need_confirm": True
-            		}
-            	}
+                    }
+                }
             }
         }
         return msg
@@ -89,19 +89,19 @@ class API_device_control():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": "dm_set",
-            	"req_id": 178237278,
-            	"timestamp": 123456789,
-            	"nodeid": "bulb.main.temperature",
-            	"params": {
-            		"user_id": common_para_dict["user_id"],
+                "method": "dm_set",
+                "req_id": 178237278,
+                "timestamp": 123456789,
+                "nodeid": "bulb.main.temperature",
+                "params": {
+                    "user_id": common_para_dict["user_id"],
                     "device_uuid": common_para_dict["device_uuid"],
-            		"attribute": {
+                    "attribute": {
                         "temperature": temperature,
                         "transition_time": 10,
                         "need_confirm": 'false'
-            		}
-            	}
+                    }
+                }
             }
         }
         return msg
@@ -112,20 +112,20 @@ class API_device_control():
             "uuid": "111",
             "encry": "false",
             "content": {
-            	"method": "dm_set",
-            	"req_id": 178237278,
-            	"timestamp": 123456789,
-            	"nodeid": "bulb.main.hue",
-            	"params": {
-            		"user_id": common_para_dict["user_id"],
+                "method": "dm_set",
+                "req_id": 178237278,
+                "timestamp": 123456789,
+                "nodeid": "bulb.main.hue",
+                "params": {
+                    "user_id": common_para_dict["user_id"],
                     "device_uuid": common_para_dict["device_uuid"],
-            		"attribute": {
+                    "attribute": {
                         "hue": hue,
                         "saturation": saturation,
                         "transition_time": 10,
                         "need_confirm": 'false'
-            		}
-            	}
+                    }
+                }
             }
         }
         return msg

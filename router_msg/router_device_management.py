@@ -179,7 +179,7 @@ class API_device_management():
             "uuid": "111",
             "encry": "false",
             "content": {
-                "method": "dm_get_dev_type_list",
+                "method": "3d_get_dev_type_list",
                 "timestamp": 1490229730,
                 "req_id": 123,
                 "params": {
@@ -213,16 +213,17 @@ class API_device_management():
             "uuid": "111",
             "encry": "false",
             "content": {
-                "method": "dm_get_dev_product_list",
+                "method": "3d_get_dev_product_list",
                 "timestamp": 1490229730,
                 "req_id": 123,
                 "params": {
                     "family_id": common_para_dict["family_id"],
                     "user_id": common_para_dict["user_id"],
-                    "brand": brand,
-                    "type": dev_type,
+                    "brand": "",
+                    "type": "",
+                    "status": 0,
                     "time": 1511424694,
-                    "number": number
+                    "number": 10
                 }
             }
         }

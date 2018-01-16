@@ -1,52 +1,102 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import datetime
+import json
 import os
-import sys
+import random
 import re
+import sys
 import time
-from APIs.common_APIs import register_caseid
+
 import APIs.common_methods as common_methods
-import connections.my_socket as my_socket
+from APIs.common_APIs import register_caseid
+from router_msg.room_hoompage_management import API_room_homepage_management
+from router_msg.router_device_management import API_device_management
 
 
 @register_caseid(casename=__name__)
 class Test(common_methods.CommMethod):
-
     def run(self):
-        self.case_pass('let us go!')
-        server = my_socket.MyServer(('', 8888), self.LOG, debug=True)
-        server.run_forever()
-        #time.sleep(1000)
+        # 数据库查询
+        result = self.get_router_db_info(['select * from TABLE_WIFI_DEVICE;'])
+        common_para_dict = {
+            "family_id": self.common_para_dict["family_id"],
+            "user_id": self.common_para_dict["user_id"],
+            "room_id": 1
+        }
+        if result and 'device_uuid' in result[1]:
+            common_para_dict['device_uuid'] = result[1]['device_uuid']
+        else:
+            # add WIFI device
+            common_para_dict['device_uuid'] = self.add_wifi_device(
+                device_category_id=1, room_id=1)
+            if common_para_dict['device_uuid']:
+                pass
+            else:
+                return self.case_fail()
+        result = self.get_router_db_info(
+            ['delete from TABLE_DEVICE_SHORTCUTS where id > 12;'])
+
+        # build msg
+        msg = API_room_homepage_management.build_msg_add_shortcut_sort(
+            common_para_dict, device_category_id=1, name=u"空调", order=3, mode='on', attribute={"speed": "high"})
+
+        # send msg to router
+        if self.socket_send_to_router(json.dumps(msg) + '\n'):
+            pass
+        else:
+            return self.case_fail("Send msg to router failed!")
+
+        # recv msg from router
+        data = self.socket_recv_from_router()
+        if data:
+            dst_package = self.get_package_by_keyword(
+                data, ['dm_add_shortcut', 'result'], except_keyword_list=['mdp_msg'])
+            for msg in dst_package:
+                self.LOG.warn(self.convert_to_dictstr(msg))
+            self.LOG.debug(self.convert_to_dictstr(dst_package[0]))
+        else:
+            return self.case_fail("timeout, server no response!")
+
+        # msg check
+        template = {
+            "content": {
+                "code": 0,
+                "msg": "success",
+                "req_id": "no_need",
+                "msg_tag": "no_need",
+                "timestamp": "no_need",
+                "method": "dm_add_shortcut",
+                "result": {
+                    "shortcut_id": 13,
+                    "user_id": common_para_dict["user_id"],
+                    "room_id": common_para_dict["room_id"],
+                    "family_id": common_para_dict["family_id"],
+                    "name": u"空调-风速",
+                    "device_category_id": 1,
+                    "order": 3,
+                    "content": [
+                        {
+                            "device_uuid": common_para_dict["device_uuid"],
+                            "attribute": "no_need",
+                        },
+                    ],
+                }
+            },
+            "encry": "no_need",
+            "uuid": "no_need",
+        }
+        if self.json_compare(template, dst_package[0]):
+            pass
+        else:
+            return self.case_fail("msg check failed!")
+
+        # DB check
+        result = self.get_router_db_info(
+            ['select *  from TABLE_DEVICE_SHORTCUTS where room_id = 1 and device_order = 3;'])
+        if 'id' in result[1]:
+            return self.case_fail("DB check add shortcut fail!")
         return self.case_pass()
 
-        self.telnet.connect()
 
-        for i in range(10):
-            wifi0 = self.telnet.send("cat /sys/class/net/wifi0/thermal/temp")
-            self.LOG.debug(wifi0)
-            temperature0 = re.findall(r'^(\d+)\s*$', wifi0, re.M)
-            if temperature0:
-                self.LOG.debug("wifi0: %s" % temperature0[0])
-                if int(temperature0[0]) < 80:
-                    pass
-                else:
-                    return self.case_fail(
-                        "wifi0 temperature too high: [%s]" % temperature0[0])
-            else:
-                return self.case_fail("wifi0 read fail![%s]" % wifi0)
-
-            wifi1 = self.telnet.send("cat /sys/class/net/wifi1/thermal/temp")
-            self.LOG.debug(wifi1)
-            temperature1 = re.findall(r'^(\d+)\s*$', wifi1, re.M)
-            if temperature1:
-                self.LOG.debug("wifi1: %s" % temperature1[0])
-                if int(temperature1[0]) < 80:
-                    pass
-                else:
-                    return self.case_fail(
-                        "wifi1 temperature too high: [%s]" % temperature1[0])
-            else:
-                return self.case_fail("wifi1 read fail![%s]" % wifi1)
-
-            time.sleep(1)
-        self.case_pass()
+if __name__ == '__main__':
+    Test().test()

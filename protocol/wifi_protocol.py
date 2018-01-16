@@ -172,10 +172,11 @@ class Wifi(communication_base):
         elif msg[2] == b'\x03':
             dict_msg = json.loads(msg[3:-1])
             self.LOG.info(self.convert_to_dictstr(dict_msg))
-            rsp_msg_list = self.sim_obj.protocol_handler(dict_msg)
-            final_rsp_msg = ''
-            for rsp_msg in rsp_msg_list:
-                final_rsp_msg += self.msg_build(rsp_msg)
+            rsp_msg = self.sim_obj.protocol_handler(dict_msg)
+            if rsp_msg:
+                final_rsp_msg = self.msg_build(rsp_msg)
+            else:
+                final_rsp_msg = 'No_need_send'
             time.sleep(self.time_delay / 1000.0)
             return final_rsp_msg
 
@@ -191,7 +192,7 @@ class Wifi(communication_base):
             return True
         elif self.connection.connect():
             self.set_connection_state(True)
-            self.LOG.info('Setup connection success!')
+            self.LOG.info('Connection setup success!')
             return True
         else:
             self.LOG.warn("Can't connect %s!" % str(self.addr))

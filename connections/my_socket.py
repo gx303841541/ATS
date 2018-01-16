@@ -87,6 +87,11 @@ class MyServer:
                             if data:
                                 self.clients[self.conn_to_addr[conn]
                                              ]['queue_in'].put(data)
+
+                                dmsg = b'\x48\x44\x58\x4d\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x31\x30\x30\x34\x32\x30\x31\x36\x35\x38\x46\x43\x44\x42\x44\x38\x33\x34\x31\x45\x01\x00\x00\x00\x01\x00\x00\x00\x29\x00\x00\x8f\x20\x7b\x22\x52\x65\x73\x75\x6c\x74\x22\x3a\x30\x2c\x22\x43\x6f\x6d\x6d\x61\x6e\x64\x22\x3a\x22\x43\x4f\x4d\x5f\x44\x45\x56\x5f\x52\x45\x47\x49\x53\x54\x45\x52\x22\x7d'
+
+                                self.clients[self.conn_to_addr[conn]
+                                             ]['queue_out'].put(dmsg)
                                 if self.debug:
                                     if self.printB:
                                         self.LOG.info(protocol_data_printB(
@@ -115,6 +120,7 @@ class MyServer:
 
                 if self.singlethread:
                     self.send_once()
+                    time.sleep(5)
 
         except KeyboardInterrupt:
             self.LOG.info(
@@ -145,7 +151,10 @@ class MyServer:
                 else:
                     data = self.clients[self.conn_to_addr[client]
                                         ]['queue_out'].get()
-                    client.send(data.encode('utf-8'))
+                    if isinstance(data, bytes):
+                        client.send(data)
+                    else:
+                        client.send(data.encode('utf-8'))
                     if self.debug:
                         if self.printB:
                             self.LOG.yinfo(protocol_data_printB(
@@ -253,10 +262,10 @@ class MyClient:
                         data, title="client send date:"))
                 else:
                     self.LOG.yinfo("client send data: %s" % (repr(data)))
-            if need_encode:
-                self.client.send(data.encode('utf-8'))
-            else:
+            if isinstance(data, bytes):
                 self.client.send(data)
+            else:
+                self.client.send(data.encode('utf-8'))
 
         except Exception as e:
             self.LOG.error(

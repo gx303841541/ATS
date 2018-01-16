@@ -6,15 +6,18 @@ use:
     all the funcs can be used by any module should be here
 """
 
+import binascii
 import functools
 import hashlib
 import os
 import re
 import struct
 import sys
-#import queue, fcntl
 import threading
+from binascii import unhexlify
 from subprocess import *
+
+import crcmod.predefined
 
 
 '''
@@ -139,6 +142,8 @@ def need_add_lock(lock):
 
 # Hex print
 def protocol_data_printB(data, title=''):
+    # if isinstance(data, bytes):
+    #    data = data.decode('utf-8')
     datas = re.findall(r'([\x00-\xff])', data, re.M)
     ret = title + ' %s bytes:' % (len(datas)) + '\n\t\t'
     counter = 0
@@ -162,6 +167,15 @@ def crc(s):
     return struct.pack('B', result)
 
 
+# create CRC16
+def crc16(data):
+    a = binascii.b2a_hex(data)
+    s = unhexlify(a)
+    crc16 = crcmod.predefined.Crc('crc-ccitt-false')
+    crc16.update(s)
+    return struct.pack('>H', crc16.crcValue)
+
+
 def get_md5(strtext):
     m2 = hashlib.md5()
     m2.update(strtext)
@@ -174,3 +188,8 @@ def find_max(str_list):
         if int(item) > int(max_str):
             max_str = item
     return max_str
+
+
+if __name__ == '__main__':
+    print(crc16(b'12345678'))
+    print(crc16(b'1234567890'))
