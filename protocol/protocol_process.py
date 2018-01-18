@@ -101,7 +101,6 @@ class communication_base(object):
     def send_data_once(self, data=None):
         if data:
             self.queue_out.put(data)
-
         if self.queue_out.empty():
             pass
         else:
@@ -147,6 +146,7 @@ class communication_base(object):
     def heartbeat_loop(self):
         while True:
             if self.get_connection_state():
+                self.LOG.yinfo("send msg:")
                 self.LOG.yinfo(self.heartbeat_data)
                 self.send_data_once(data=self.heartbeat_data)
             else:

@@ -918,6 +918,7 @@ class Door(BaseSim):
         self.LOG = logger
         self.sdk_obj = sdk_obj
         self.sdk_obj.sim_obj = self
+        self.sdk_obj.device_id = deviceID
         self.sdk_obj.heartbeat_interval = 60
         self.sdk_obj.heartbeat_data = self.sdk_obj.msg_build(
             self.get_heartbeat_msg())
@@ -925,7 +926,7 @@ class Door(BaseSim):
         # state data:
         self.task_obj = Task('Washer-task', self.LOG)
         self.dev_register = False
-        self._type = 2016
+        self._type = 'DOOR_CONTROLLER'
         self._subDeviceType = 88
         self._deviceID = deviceID
         self._subDeviceID = deviceID
@@ -934,20 +935,20 @@ class Door(BaseSim):
         self._ip = self_ip
         self._mac = b'00:FF:81:99:2F:49'
         self._mask = b'255.255.255.0'
-        self._version = b'1.0.01'
+        self._version = b'1.0.0'
         self._time = datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S').encode('utf-8')
         self._appVersionInfo = b'appVersionInfo.8.8.8'
         self._fileServerUrl = b'http://192.168.10.1/noexist'
-        self._ntpServer = b'4.4.4.4'
-        self._openDuration = 10
-        self._current_openDuration = 10
+        self._ntpServer = b'4.4.4.4:8888'
+        self._openDuration = 8
+        self._current_openDuration = 8
         self._alarmTimeout = 20
         self._startTime = b'1988-08-08'
         self._endTime = datetime.datetime.now().strftime('%Y-%m-%d').encode('utf-8')
-        self._UserType = b''
+        self._UserType = b'MONTH_B'
         self._userID = b''
-        self._CredenceType = b''
+        self._CredenceType = b'FACE'
         self._credenceNo = b'12345678'
         self._State = 0
 
@@ -990,7 +991,7 @@ class Door(BaseSim):
 
         if need_send_report:
             self.LOG.warn("记录上传".decode('utf-8').encode(coding))
-            self.send_msg(self.get_upload_record())
+            self.send_msg(self.get_upload_status())
 
     def to_register_dev(self):
         if self.dev_register:
@@ -1016,16 +1017,41 @@ class Door(BaseSim):
         }
         return json.dumps(report_msg)
 
-    def get_upload_record(self):
+    def get_upload_status(self):
+        report_msg = {
+            "Command": 'COM_UPLOAD_DEV_STATUS',
+            "Data": [
+                {
+                    "deciceType": self._type,
+                    "deviceID": self._deviceID,
+                    "deciceStatus": self._State,
+                }
+            ]
+        }
+        return json.dumps(report_msg)
+
+    def get_upload_record(self, record_type):
         report_msg = {
             "Command": 'COM_UPLOAD_RECORD',
             "Data": [
                 {
                     "deviceID": self._deviceID,
                     "recordTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S').encode('utf-8'),
-                    "RecordType": "FACE_OPEN_DOOR_RECORD",
+                    "RecordType": record_type,
                     "CredenceType": self._CredenceType,
                     "passType": random.randint(0, 1),
+                }
+            ]
+        }
+        return json.dumps(report_msg)
+
+    def get_upload_event(self, event_type):
+        report_msg = {
+            "Command": 'COM_UPLOAD_EVENT',
+            "Data": [
+                {
+                    "EventType": event_type,
+                    "Time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S').encode('utf-8'),
                 }
             ]
         }
@@ -1045,7 +1071,7 @@ class Door(BaseSim):
                 self.dev_register = True
                 return None
             else:
-                self.LOG.warn('Unknow msg: %s!' % (msg['Command']))
+                #self.LOG.warn('Unknow msg: %s!' % (msg['Command']))
                 return None
 
         # 系统管理
@@ -1199,6 +1225,7 @@ class Door(BaseSim):
 
         elif msg['Command'] == 'COM_LOAD_CERTIFICATE_IN_BATCH':
             self.LOG.warn("批量下发固定凭证信息: ".decode('utf-8').encode(coding))
+            self.set_item('_httpUrl', msg['Data']['httpUrl'])
             rsp_msg = {
                 "Command": msg['Command'],
                 "Result": 0,

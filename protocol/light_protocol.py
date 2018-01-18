@@ -56,6 +56,7 @@ class SDK(communication_base):
         self.pkg_number = b'\x00\x00\x00\x01'
 
     def msg_build(self, data, ack=b'\x01'):
+        self.LOG.yinfo("send msg:")
         self.LOG.yinfo(self.convert_to_dictstr(data))
         if ack == b'\x00':
             src_id = self.device_id
@@ -130,6 +131,7 @@ class SDK(communication_base):
                 data_length = struct.unpack('>I', msg[49:53])[0]
                 crc16 = struct.unpack('>H', msg[55:57])
                 data = json.loads(msg[57:57 + data_length])
+                self.LOG.info("recv msg:")
                 self.LOG.info(self.convert_to_dictstr(data))
                 rsp_msg = self.sim_obj.protocol_handler(data, ack)
                 if rsp_msg:

@@ -70,7 +70,7 @@ class Suite():
             return False
 
     def __add__(self, other):
-        return Suite(self.config_file, self.id + other.id, self.name + '_' + other.name, self.cases + other.cases, self.sub_suites + other.sub_suites, dirstr=self.dirstr + ' ' + other.dirstr)
+        return Suite(self.config_file, self.id + other.id, "super_suite", self.cases + other.cases, self.sub_suites + other.sub_suites, dirstr=self.dirstr + ' ' + other.dirstr)
 
     def __clean_testlog(self):
         try:

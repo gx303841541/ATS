@@ -57,15 +57,15 @@ class ArgHandle():
             action='store',
             default=500,
             type=int,
-            help='time delay(ms) for msg send to router, default time is 500(ms)',
+            help='time delay(ms) for msg send to server, default time is 500(ms)',
         )
         parser.add_argument(
             '--device',
             dest='device_type',
             action='store',
             choices={'door', 'elevator'},
-            default='air',
-            help='Specify device type',
+            default='door',
+            help='Specify device type, door is default',
         )
         parser.add_argument(
             '-p', '--server-port',
@@ -73,7 +73,7 @@ class ArgHandle():
             action='store',
             default=20001,
             type=int,
-            help='Specify TCP server port',
+            help='Specify TCP server port, default is 20001',
         )
         parser.add_argument(
             '-i', '--server-IP',
@@ -82,13 +82,22 @@ class ArgHandle():
             default='192.168.10.12',
             help='Specify TCP server IP address',
         )
+        parser.add_argument(
+            '--deviceID',
+            dest='deviceID',
+            action='store',
+            default="1001201600FF81992F49",
+            help='Specify device ID(20bytes), defualt is 1001201600FF81992F49',
+        )
         return parser
 
     def get_args(self, attrname):
         return getattr(self.args, attrname)
 
     def check_args(self):
-        pass
+        if len(self.get_args('deviceID')) != 20:
+            LOG.critical("deviceID length wrong! It should be 20 bytes!")
+            sys.exit()
 
     def run(self):
         self.args = self.parser.parse_args()
@@ -103,6 +112,46 @@ class MyCmd(Cmd):
         self.sdk_obj = sdk_obj
         self.sim_obj = sim_obj
         self.LOG = logger
+
+        self.defined_event = [
+            "TAMPER_ALARM",
+            "LOW_VOLTAGE_ALARM",
+            "ABNORMAL_OPEN_DOOR_ALARM",
+            "OPEN_DOOR_TIMEOUT_ALARM",
+            "IMPACT_BALUSTRADE",
+            "GPS_EVENT",
+            "NFC_EVENT",
+        ]
+
+        self.defined_record = [
+            "FACE_OPEN_DOOR_RECORD",
+            "REMOTE_OPEN_DOOR_RECORD",
+            "BURSH_CARD_OPEN_DOOR_RECORD",
+            "QR_CODE_OPEN_DOOR_RECORD",
+            "FINGER_OPEN_DOOR_RECORD",
+            "PASSWORD_OPEN_DOOR_RECORD",
+            "BUTTON_OPEN_DOOR_RECORD",
+            "BLACKLIST_OPEN_DOOR_RECORD",
+            "FACE_OPEN_DOOR_FAIL_RECORD",
+            "REMOTE_OPEN_DOOR_FAIL_RECORD",
+            "CPU_CARD_OPEN_DOOR_FAIL_RECORD",
+            "QR_CODE_OPEN_DOOR_FAIL_RECORD",
+            "FINGER_OPEN_DOOR_FAIL_RECORD",
+            "PASSWORD_OPEN_DOOR_FAIL_RECORD",
+            "BURSH_CARD_OPEN_PARK_RECORD",
+            "CARNO_OPEN_PARK_RECORD",
+            "REMOTE_OPEN_PARK_RECORD",
+            "MANUAL_OPEN_PARK_RECORD",
+            # AlarmType
+            "TAMPER_ALARM",
+            "OPEN_DOOR_TIMEOUT_ALARM",
+            "OPEN_DOOR_ABNORMAL_ALARM",
+            "DANGLE_AFTER_ALARM",
+            "DEVICE_FAILURE_ALARM",
+            "FACE_FAILURE_ALARM",
+            "CARD_FAILURE_ALARM",
+            "QRCode_FAILURE_ALARM"
+        ]
 
     def help_log(self):
         cprint.notice_p(
@@ -127,8 +176,30 @@ class MyCmd(Cmd):
     def do_st(self, arg, opts=None):
         self.sim_obj.status_show()
 
+    def help_record(self):
+        cprint.notice_p("send record:")
+        for item in sorted(self.defined_record):
+            cprint.yinfo_p("%s" % item)
+
+    def do_record(self, arg, opts=None):
+        if arg in self.defined_record:
+            self.sim_obj.send_msg(self.sim_obj.get_upload_record(arg))
+        else:
+            cprint.error_p("Unknow record: %s" % arg)
+
+    def help_event(self):
+        cprint.notice_p("send event")
+        for item in sorted(self.defined_event):
+            cprint.yinfo_p("%s" % item)
+
+    def do_event(self, arg, opts=None):
+        if arg in self.defined_event:
+            self.sim_obj.send_msg(self.sim_obj.get_upload_event(arg))
+        else:
+            cprint.error_p("Unknow event: %s" % arg)
+
     def help_set(self):
-        cprint.notice_p("show state")
+        cprint.notice_p("set state")
 
     def do_set(self, arg, opts=None):
         args = arg.split()
@@ -178,7 +249,7 @@ def sys_cleanup():
 
 
 if __name__ == '__main__':
-    LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.DEBUG,
+    LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.INFO,
                    rlevel=logging.WARN)
     cprint = cprint(__name__)
 
@@ -192,7 +263,8 @@ if __name__ == '__main__':
 
     sdk = SDK((arg_handle.get_args('server_IP'), arg_handle.get_args('server_port')), logger=LOG,
               time_delay=arg_handle.get_args('time_delay'))
-    sim = Door(logger=LOG, sdk_obj=sdk)
+    sim = Door(logger=LOG, sdk_obj=sdk,
+               deviceID=arg_handle.get_args('deviceID'))
     thread_list.append([sdk.schedule_loop])
     thread_list.append([sdk.send_data_loop])
     thread_list.append([sdk.recv_data_loop])
@@ -202,7 +274,7 @@ if __name__ == '__main__':
     sys_proc()
 
     if arg_handle.get_args('debug'):
-        dmsg = b'\x48\x44\x58\x4d\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x30\x31\x30\x30\x34\x32\x30\x31\x36\x35\x38\x46\x43\x44\x42\x44\x38\x33\x34\x31\x45\x01\x00\x00\x00\x01\x00\x00\x00\x29\x00\x00\x8f\x20\x7b\x22\x72\x65\x73\x75\x6c\x74\x22\x3a\x30\x2c\x22\x63\x6f\x6d\x6d\x61\x6e\x64\x22\x3a\x22\x43\x4f\x4d\x5f\x44\x45\x56\x5f\x52\x45\x47\x49\x53\x54\x45\x52\x22\x7d'
+        dmsg = b''
         time.sleep(1)
         sim.sdk_obj.queue_in.put(dmsg)
 
