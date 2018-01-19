@@ -33,14 +33,14 @@ else:
 class SDK(communication_base):
     state_lock = threading.Lock()
 
-    def __init__(self, addr, logger, time_delay=0.5):
+    def __init__(self, addr, logger, time_delay=0.5, self_addr=None):
         self.queue_in = Queue.Queue()
         self.queue_out = Queue.Queue()
         super(SDK, self).__init__(self.queue_in, self.queue_out,
                                   logger=logger, left_data=b'', min_length=57)
         self.addr = addr
         self.name = 'Device controler'
-        self.connection = my_socket.MyClient(addr, logger)
+        self.connection = my_socket.MyClient(addr, logger, self_addr=self_addr)
         self.state = 'close'
         self.time_delay = time_delay
         self.sim_obj = None

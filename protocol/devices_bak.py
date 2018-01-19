@@ -19,7 +19,6 @@ import sys
 import threading
 import time
 from collections import defaultdict
-from importlib import import_module
 
 import APIs.common_APIs as common_APIs
 from basic.log_tool import MyLogger
@@ -49,13 +48,6 @@ class BaseSim():
             self.__dict__[item] = value
         else:
             self.LOG.error("Unknow item: %s" % (item))
-
-    @common_APIs.need_add_lock(status_lock)
-    def add_item(self, item, value):
-        try:
-            setattr(self, item, value)
-        except:
-            self.LOG.error("add item fail: %s" % (item))
 
     def status_show(self):
         for item in sorted(self.__dict__):
@@ -922,19 +914,11 @@ class Washer(BaseSim):
 
 
 class Door(BaseSim):
-    def __init__(self, logger, sdk_obj, config_file):
-        print os.getcwd()
-        module_name = "protocol.config.%s" % config_file
-        mod = __import__(module_name)
-        components = module_name.split('.')
-        for comp in components[1:]:
-            mod = getattr(mod, comp)
-        self.sim_config = mod
+    def __init__(self, logger, sdk_obj, self_ip='192.168.10.1', deviceID="1001201600FF81992F49"):
         self.LOG = logger
         self.sdk_obj = sdk_obj
         self.sdk_obj.sim_obj = self
-        self.attribute_initialization()
-        self.sdk_obj.device_id = self._deviceID
+        self.sdk_obj.device_id = deviceID
         self.sdk_obj.heartbeat_interval = 60
         self.sdk_obj.heartbeat_data = self.sdk_obj.msg_build(
             self.get_heartbeat_msg())
@@ -942,7 +926,31 @@ class Door(BaseSim):
         # state data:
         self.task_obj = Task('Washer-task', self.LOG)
         self.dev_register = False
-        self.command_list = getattr(self.sim_config, "Command_list")
+        self._type = 'DOOR_CONTROLLER'
+        self._subDeviceType = 88
+        self._deviceID = deviceID
+        self._subDeviceID = deviceID
+        self._name = b'dog door'
+        self._manufacturer = b'HDIOT'
+        self._ip = self_ip
+        self._mac = b'00:FF:81:99:2F:49'
+        self._mask = b'255.255.255.0'
+        self._version = b'1.0.0'
+        self._time = datetime.datetime.now().strftime(
+            '%Y-%m-%d %H:%M:%S').encode('utf-8')
+        self._appVersionInfo = b'appVersionInfo.8.8.8'
+        self._fileServerUrl = b'http://192.168.10.1/noexist'
+        self._ntpServer = b'4.4.4.4:8888'
+        self._openDuration = 8
+        self._current_openDuration = 8
+        self._alarmTimeout = 20
+        self._startTime = b'1988-08-08'
+        self._endTime = datetime.datetime.now().strftime('%Y-%m-%d').encode('utf-8')
+        self._UserType = b'MONTH_B'
+        self._userID = b''
+        self._CredenceType = b'FACE'
+        self._credenceNo = b'12345678'
+        self._State = 0
 
     def run_forever(self):
         self.task_obj.add_task(
@@ -952,40 +960,27 @@ class Door(BaseSim):
                                self.monitor_record, 10000000, 1)
 
         self.task_obj.add_task(
-            'dev register', self.to_register_dev, 1, 1)
-
-        self.task_obj.add_task(
-            'check register', self.check_register_dev, 1, 10)
+            'dev register', self.to_register_dev, 10000000, 1)
 
         return self.task_obj.task_proc()
 
     def status_maintain(self):
-        for item in self.SPECIAL_ITEM:
-            if "maintain" not in self.SPECIAL_ITEM[item]["use"]:
-                continue
-            if self.__dict__[item] != self.SPECIAL_ITEM[item]["init_value"]:
-                tmp_item = '_current_time_' + item
-                if '_current_time_' + item in self.__dict__:
-                    if self.__dict__[tmp_item] > 0:
-                        self.set_item(tmp_item, self.__dict__[tmp_item] - 1)
-                        if self.__dict__[tmp_item] <= 0:
-                            self.set_item(
-                                tmp_item, self.SPECIAL_ITEM[item]["wait_time"])
-                            self.set_item(
-                                item, self.SPECIAL_ITEM[item]["init_value"])
-                    else:
-                        self.set_item(
-                            item, self.SPECIAL_ITEM[item]["init_value"])
-                else:
-                    self.add_item('_current_time_' + item,
-                                  self.SPECIAL_ITEM[item]["wait_time"])
+        if self._State == 1 or self._State == '1':
+            if self._current_openDuration > 0:
+                self.set_item('_current_openDuration',
+                              self._current_openDuration - 1)
+                if self._current_openDuration <= 0:
+                    self.set_item('_current_openDuration', self._openDuration)
+                    self.set_item('_State', 0)
+            else:
+                self.set_item('_State', 0)
 
     def monitor_record(self):
         need_send_report = False
         if not hasattr(self, 'old_status'):
             self.old_status = defaultdict(lambda: {})
             for item in self.__dict__:
-                if item in self.SPECIAL_ITEM and "report" in self.SPECIAL_ITEM[item]["use"]:
+                if item == "_State":
                     self.LOG.yinfo("need check item: %s" % (item))
                     self.old_status[item] = copy.deepcopy(self.__dict__[item])
 
@@ -1003,27 +998,63 @@ class Door(BaseSim):
             self.LOG.debug("设备已经注册".decode('utf-8').encode(coding))
         else:
             self.LOG.debug("发送设备注册".decode('utf-8').encode(coding))
-            self.send_msg(json.dumps(
-                self.get_send_msg('COM_DEV_REGISTER')))
+            self.send_msg(self.get_dev_register_msg())
 
-    def check_register_dev(self):
-        if self.dev_register:
-            self.LOG.debug("设备已经注册".decode('utf-8').encode(coding))
-        else:
-            self.LOG.error("设备注册失败".decode('utf-8').encode(coding))
-            # sys.exit()
+    def get_dev_register_msg(self):
+        report_msg = {
+            "Command": "COM_DEV_REGISTER",
+            "Data": [
+                {
+                    "Type": self._type,
+                    "deviceID": self._deviceID,
+                    "manufacturer": self._manufacturer,
+                    "ip": self._ip,
+                    "mac": self._mac,
+                    "mask": self._mask,
+                    "version": self._version,
+                }
+            ]
+        }
+        return json.dumps(report_msg)
 
     def get_upload_status(self):
-        return json.dumps(self.get_send_msg('COM_UPLOAD_DEV_STATUS'))
+        report_msg = {
+            "Command": 'COM_UPLOAD_DEV_STATUS',
+            "Data": [
+                {
+                    "deciceType": self._type,
+                    "deviceID": self._deviceID,
+                    "deciceStatus": self._State,
+                }
+            ]
+        }
+        return json.dumps(report_msg)
 
     def get_upload_record(self, record_type):
-        report_msg = self.get_send_msg('COM_UPLOAD_RECORD')
-        report_msg["Data"][0]["RecordType"] = record_type
+        report_msg = {
+            "Command": 'COM_UPLOAD_RECORD',
+            "Data": [
+                {
+                    "deviceID": self._deviceID,
+                    "recordTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S').encode('utf-8'),
+                    "RecordType": record_type,
+                    "CredenceType": self._CredenceType,
+                    "passType": random.randint(0, 1),
+                }
+            ]
+        }
         return json.dumps(report_msg)
 
     def get_upload_event(self, event_type):
-        report_msg = self.get_send_msg('COM_UPLOAD_EVENT')
-        report_msg["Data"][0]["EventType"] = event_type
+        report_msg = {
+            "Command": 'COM_UPLOAD_EVENT',
+            "Data": [
+                {
+                    "EventType": event_type,
+                    "Time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S').encode('utf-8'),
+                }
+            ]
+        }
         return json.dumps(report_msg)
 
     def get_heartbeat_msg(self):
@@ -1040,73 +1071,217 @@ class Door(BaseSim):
                 self.dev_register = True
                 return None
             else:
-                self.LOG.warn('Unknow msg: %s!' % (msg['Command']))
+                #self.LOG.warn('Unknow msg: %s!' % (msg['Command']))
                 return None
 
-        if msg['Command'] in self.command_list:
-            self.set_items(msg['Command'], msg)
-            self.action(msg['Command'])
-            rsp_msg = self.get_rsp_msg(msg['Command'])
+        # 系统管理
+        if msg['Command'] == 'COM_QUERY_DIR':
+            self.LOG.warn("设备目录查询: ".decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+                "Data": [
+                    {
+                        "deviceID": self._deviceID,
+                        "name": self._name,
+                        "manufacturer": self._manufacturer,
+                        "version": self._version,
+                        "subDeviceType": self._subDeviceType
+                    }
+                ]
+            }
             return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_DEV_RESET':
+            self.LOG.warn("恢复出厂设置: ".decode('utf-8').encode(coding))
+            self.sdk_obj.connection_close()
+            time.sleep(5)
+            self.sdk_obj.connection_setup()
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_READ_TIME':
+            self.LOG.warn("读取时间: ".decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+                "Data": [
+                    {
+                        "time": self._time
+                    }
+                ]
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_SET_TIME':
+            self.LOG.warn("设置时间: ".decode('utf-8').encode(coding))
+            self.set_item('_time', msg['Data']['time'])
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_CORRECTION':
+            self.LOG.warn("立即校时: ".decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_READ_SYSTEM_VERSION':
+            self.LOG.warn("读取系统版本信息: ".decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+                "Data": [
+                    {
+                        "appVersionInfo": self._appVersionInfo
+                    }
+                ]
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_NOTIFY_UPDATE':
+            self.LOG.warn("通知设备升级: ".decode('utf-8').encode(coding))
+            self.set_item('_version', msg['Data']['newVersion'])
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        # 设备参数
+        elif msg['Command'] == 'COM_READ_PARAMETER':
+            self.LOG.warn("读取参数: ".decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+                "Data": [
+                    {
+                        "deviceID": self._deviceID,
+                        "fileServerUrl": self._fileServerUrl,
+                        "ntpServer": self._ntpServer,
+                        "openDuration": self._openDuration,
+                        "alarmTimeout": self._alarmTimeout,
+                    }
+                ]
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_SETTING_PARAMETERS':
+            self.LOG.warn("设置参数: ".decode('utf-8').encode(coding))
+            self.set_item('_fileServerUrl', msg['Data']['fileServerUrl'])
+            self.set_item('_ntpServer', msg['Data']['ntpServer'])
+            self.set_item('_alarmTimeout', msg['Data']['alarmTimeout'])
+            self.set_item('_openDuration', msg['Data']['openDuration'])
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_LOAD_CERTIFICATE':
+            self.LOG.warn("下发固定凭证信息: ".decode('utf-8').encode(coding))
+            self.set_item('_startTime', msg['Data']['startTime'])
+            self.set_item('_endTime', msg['Data']['endTime'])
+            self.set_item('_subDeviceID', msg['Data']['subDeviceID'])
+            self.set_item('_UserType', msg['Data']['UserType'])
+            self.set_item('_CredenceType', msg['Data']['CredenceType'])
+            self.set_item('_credenceNo', msg['Data']['credenceNo'])
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_READ_CERTIFICATE':
+            self.LOG.warn("读取固定凭证信息: ".decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+                "Data": [
+                    {
+                        "startTime": self._startTime,
+                        "endTime": self._endTime,
+                        "CredenceType": self._CredenceType,
+                        "credenceNo": self._credenceNo,
+                    }
+                ]
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_DELETE_CERTIFICATE':
+            self.LOG.warn("删除固定凭证信息: ".decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_LOAD_CERTIFICATE_IN_BATCH':
+            self.LOG.warn("批量下发固定凭证信息: ".decode('utf-8').encode(coding))
+            self.set_item('_httpUrl', msg['Data']['httpUrl'])
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_READ_CERTIFICATE_IN_BATCH':
+            self.LOG.warn("批量读取固定凭证信息: ".decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+                "Data": [
+                    {
+                        "deviceID": self._deviceID,
+                        "httpUrl": self._httpUrl,
+                        "opTime": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S').encode('utf-8'),
+                    }
+                ]
+            }
+            return json.dumps(rsp_msg)
+
+        elif msg['Command'] == 'COM_DELETE_CERTIFICATE_IN_BATCH':
+            self.LOG.warn("清除固定凭证操作: ".decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        # 设备操控
+        elif msg['Command'] == 'COM_GATE_CONTROL':
+            self.LOG.warn(("开关闸（门）: %s" % (msg['Data']['operateType'])).decode(
+                'utf-8').encode(coding))
+            self.set_item('_State', msg['Data']['operateType'])
+            self.set_item('_userID', msg['Data']['userID'])
+            self.set_item('_userType', msg['Data']['userType'])
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+            }
+            return json.dumps(rsp_msg)
+
+        # 事件上报
+        elif msg['Command'] == 'COM_QUERY_DEV_STATUS':
+            self.LOG.warn(("设备状态查询: %s" % ()).decode('utf-8').encode(coding))
+            rsp_msg = {
+                "Command": msg['Command'],
+                "Result": 0,
+                "Data": [
+                    {
+                        "State": self._State,
+                    }
+                ]
+            }
+            return json.dumps(rsp_msg)
+
         else:
             self.LOG.warn('Unknow msg: %s!' % (msg['Command']))
             return None
-
-    def get_command_msg(self, command):
-        command = getattr(self.sim_config, command)
-        command_str = str(command)
-        command_str = self.command_param_replace(command_str)
-        # self.LOG.warn(command_str)
-        return eval(command_str.replace("'##", "").replace("##'", ""))
-
-    def command_param_replace(self, command_str):
-        command_str = re.sub(r'\'TIMENOW\'', '"%s"' % datetime.datetime.now().strftime(
-            '%Y-%m-%d %H:%M:%S'), command_str)
-        command_str = re.sub(r'\'randint1\'', '"%s"' %
-                             random.randint(0, 1), command_str)
-        return command_str
-
-    def get_record_list(self):
-        return getattr(self.sim_config, "defined_record")
-
-    def get_event_list(self):
-        return getattr(self.sim_config, "defined_event")
-
-    def get_send_msg(self, command):
-        return self.get_command_msg(command)['send_msg']
-
-    def get_rsp_msg(self, command):
-        return self.get_command_msg(command)['rsp_msg']
-
-    def set_items(self, command, msg):
-        item_dict = self.get_command_msg(command)['set_item']
-        for item, msg_param in item_dict.items():
-            msg_param_list = msg_param.split('.')
-            tmp_msg = msg[msg_param_list[0]]
-            for i in msg_param_list[1:]:
-                tmp_msg = tmp_msg[i]
-            self.set_item(item, tmp_msg)
-
-    def action(self, command):
-        action_dict = self.get_command_msg(command)['action']
-        for action_fun, action_param in action_dict:
-            if action_fun == 'reconnection':
-                self.reconnection(action_param[0])
-            else:
-                self.LOG.warn('Unknow fun: %s!' % (action_fun))
-
-    def reconnection(self, value):
-        self.sdk_obj.connection_close()
-        time.sleep(value)
-        self.sdk_obj.connection_setup()
-
-    def attribute_initialization(self):
-        attribute_params_dict = getattr(
-            self.sim_config, "Attribute_initialization")
-        for attribute_params, attribute_params_value in attribute_params_dict.items():
-            self.add_item(attribute_params, attribute_params_value)
-
-
-if __name__ == '__main__':
-
-    pass

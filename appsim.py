@@ -82,9 +82,9 @@ class ArgHandle():
             '--device',
             dest='device_type',
             action='store',
-            choices={'air', 'led'},
+            choices={'air', 'led', 'switch'},
             default='air',
-            help='Specify device type',
+            help="Specify device type: 'air', 'led', 'switch'",
         )
         return parser
 
@@ -225,6 +225,30 @@ def led_control_msg(req_id, uuid, on_off, family_id=1, user_id=1):
     return json.dumps(msg) + '\n'
 
 
+def switch_control_msg(req_id, uuid, on_off, family_id=1, user_id=1):
+    msg = {
+        "uuid": "111",
+        "encry": "false",
+        "content": {
+            "method": "dm_set",
+            "req_id": req_id,
+            "timestamp": 123456789,
+            "nodeid": "switch.main.switch",
+            "params": {
+                "family_id": family_id,
+                "user_id": user_id,
+                "device_uuid": uuid,
+                "attribute": {
+                    "switch_chan0": on_off,
+                    "switch_chan1": on_off,
+                    "switch_chan2": on_off,
+                }
+            }
+        }
+    }
+    return json.dumps(msg) + '\n'
+
+
 class AirControl(communication_base):
     state_lock = threading.Lock()
 
@@ -236,7 +260,7 @@ class AirControl(communication_base):
         self.addr = addr
         self.name = 'AirControl'
         self.connection = my_socket.MyClient(
-            addr, logger, debug=True, printB=False)
+            addr, logger, debug=False, printB=False)
         self.state = 'close'
 
         # state data:
@@ -320,7 +344,7 @@ class AirControl(communication_base):
 if __name__ == '__main__':
     # sys log init
     LOG = MyLogger(os.path.abspath(sys.argv[0]).replace(
-        'py', 'log'), clevel=logging.DEBUG, renable=False)
+        'py', 'log'), clevel=logging.INFO, renable=False)
 
     cprint = cprint(os.path.abspath(sys.argv[0]).replace('py', 'log'))
 
@@ -365,41 +389,14 @@ if __name__ == '__main__':
 
             while not app.queue_out.empty():
                 time.sleep(1)
-            time.sleep(5)
-
-            pkg_lost = 0
-            pkg_lost_list = []
-            min_delay = 8888888888
-            max_delay = 0
-            total_delay = 0
-            for item in app.msgst:
-                if 'delaytime' in app.msgst[item]:
-                    if app.msgst[item]['delaytime'] > max_delay:
-                        max_delay = app.msgst[item]['delaytime']
-                    if app.msgst[item]['delaytime'] < min_delay:
-                        min_delay = app.msgst[item]['delaytime']
-                    total_delay += app.msgst[item]['delaytime']
-                else:
-                    pkg_lost += 1
-                    pkg_lost_list.append(item)
-
-            LOG.info('Total package: %d' % len(app.msgst))
-            if pkg_lost_list:
-                LOG.error('Package with these ids have lost:')
-                for i in pkg_lost_list:
-                    LOG.warn('%d' % i)
-            LOG.error('Loss Rate: ' + "%.2f" % (pkg_lost * 100.0 /
-                                                arg_handle.get_args('number_to_send')) + '%')
-            LOG.info('MAX delay time: %dms' % max_delay)
-            LOG.yinfo('MIN delay time: %dms' % min_delay)
-            LOG.info('Average delay time(%d / %d): %.2fms' % (total_delay, (len(app.msgst) -
-                                                                            pkg_lost), (total_delay + 0.0) / (len(app.msgst) - pkg_lost)))
 
         elif arg_handle.get_args('device_type') == 'led':
             for i in range(arg_handle.get_args('number_to_send')):
                 req_id = i + 66000000
                 msg = led_control_msg(
                     req_id, arg_handle.get_args('device_uuid'), 'on')
+                app.queue_out.put(msg)
+                app.msgst[req_id]['send_time'] = datetime.datetime.now()
                 app.queue_out.put(msg)
                 LOG.info("send: " + msg.strip())
                 time.sleep(arg_handle.get_args('time_interval') / 1000.0)
@@ -408,13 +405,69 @@ if __name__ == '__main__':
                 msg = led_control_msg(
                     req_id, arg_handle.get_args('device_uuid'), 'off')
                 app.queue_out.put(msg)
+                app.msgst[req_id]['send_time'] = datetime.datetime.now()
+                app.queue_out.put(msg)
                 LOG.info("send: " + msg.strip())
                 time.sleep(arg_handle.get_args('time_interval') / 1000.0)
 
             while not app.queue_out.empty():
                 time.sleep(1)
+
+        elif arg_handle.get_args('device_type') == 'switch':
+            for i in range(arg_handle.get_args('number_to_send')):
+                req_id = i + 88000000
+                msg = switch_control_msg(
+                    req_id, arg_handle.get_args('device_uuid'), 'on')
+                app.queue_out.put(msg)
+                app.msgst[req_id]['send_time'] = datetime.datetime.now()
+                app.queue_out.put(msg)
+                LOG.info("send: " + msg.strip())
+                time.sleep(arg_handle.get_args('time_interval') / 1000.0)
+
+                req_id = i + 99000000
+                msg = switch_control_msg(
+                    req_id, arg_handle.get_args('device_uuid'), 'off')
+                app.queue_out.put(msg)
+                app.msgst[req_id]['send_time'] = datetime.datetime.now()
+                app.queue_out.put(msg)
+                LOG.info("send: " + msg.strip())
+                time.sleep(arg_handle.get_args('time_interval') / 1000.0)
+
+            while not app.queue_out.empty():
+                time.sleep(1)
+
         else:
             LOG.error('Not support device!')
+
+        time.sleep(5)
+
+        pkg_lost = 0
+        pkg_lost_list = []
+        min_delay = 8888888888
+        max_delay = 0
+        total_delay = 0
+        for item in app.msgst:
+            if 'delaytime' in app.msgst[item]:
+                if app.msgst[item]['delaytime'] > max_delay:
+                    max_delay = app.msgst[item]['delaytime']
+                if app.msgst[item]['delaytime'] < min_delay:
+                    min_delay = app.msgst[item]['delaytime']
+                total_delay += app.msgst[item]['delaytime']
+            else:
+                pkg_lost += 1
+                pkg_lost_list.append(item)
+
+        LOG.info('Total package: %d' % len(app.msgst))
+        if pkg_lost_list:
+            LOG.error('Package with these ids have lost:')
+            for i in pkg_lost_list:
+                LOG.warn('%d' % i)
+        LOG.error('Loss Rate: ' + "%.2f" % (pkg_lost * 100.0 /
+                                            arg_handle.get_args('number_to_send')) + '%')
+        LOG.info('MAX delay time: %dms' % max_delay)
+        LOG.yinfo('MIN delay time: %dms' % min_delay)
+        LOG.info('Average delay time(%d / %d): %.2fms' % (total_delay, (len(app.msgst) -
+                                                                        pkg_lost), (total_delay + 0.0) / (len(app.msgst) - pkg_lost)))
 
     except KeyboardInterrupt:
         LOG.info('KeyboardInterrupt!')

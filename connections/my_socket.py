@@ -120,7 +120,6 @@ class MyServer:
 
                 if self.singlethread:
                     self.send_once()
-                    time.sleep(5)
 
         except KeyboardInterrupt:
             self.LOG.info(
@@ -174,14 +173,18 @@ class MyServer:
 
 class MyClient:
     state_lock = threading.Lock()
+    conn_lock = threading.Lock()
 
-    def __init__(self, addr, logger, debug=False, printB=False):
+    def __init__(self, addr, logger, self_addr=None, debug=True, printB=False):
         self.client = ''
         self.addr = addr
         self.LOG = logger
+        self.self_addr = self_addr
         self.connected = False
         self.debug = debug
         self.printB = printB
+        self.binded = False
+        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def get_connected(self):
         return self.connected
@@ -203,16 +206,24 @@ class MyClient:
             if self.connected == True and self.singlethread:
                 self.send_once()
 
+    @common_APIs.need_add_lock(conn_lock)
     def connect(self):
-        self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if self.self_addr and self.binded == False:
+            # self.client.setblocking(False)
+            #self.client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.client.bind(self.self_addr)
+            self.binded = True
+
         self.inputs = [self.client]
         try:
             self.client.connect(self.addr)
             self.LOG.info("Connection setup suceess!")
             self.set_connected(True)
             return True
-        except:
-            self.LOG.warn("Connect to server failed, wait 1s...")
+
+        except Exception as e:
+            self.LOG.warn("Connect to server failed[%s], wait 1s..." % (e))
+            sys.exit()
             return False
 
     def close(self):
