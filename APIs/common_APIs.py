@@ -142,13 +142,17 @@ def need_add_lock(lock):
 
 # Hex print
 def protocol_data_printB(data, title=''):
-    # if isinstance(data, bytes):
-    #    data = data.decode('utf-8')
-    datas = re.findall(r'([\x00-\xff])', data, re.M)
-    ret = title + ' %s bytes:' % (len(datas)) + '\n\t\t'
+    if isinstance(data, type(b'')):
+        pass
+    else:
+        data = data.encode('utf-8')
+    ret = title + ' %s bytes:' % (len(data)) + '\n\t\t'
     counter = 0
-    for item in datas:
-        ret += '{:02x}'.format(ord(item)) + ' '
+    for item in data:
+        if isinstance('', type(b'')):
+            ret += '{:02x}'.format(ord(item)) + ' '
+        else:
+            ret += '{:02x}'.format(item) + ' '
         counter += 1
         if counter == 10:
             ret += ' ' + '\n\t\t'
@@ -169,6 +173,10 @@ def crc(s):
 
 # create CRC16
 def crc16(data):
+    if isinstance(data, type(b'')):
+        pass
+    else:
+        data = data.encode('utf-8')
     a = binascii.b2a_hex(data)
     s = unhexlify(a)
     crc16 = crcmod.predefined.Crc('crc-ccitt-false')
@@ -188,6 +196,16 @@ def find_max(str_list):
         if int(item) > int(max_str):
             max_str = item
     return max_str
+
+
+def chinese_show(data):
+    coding = sys.getfilesystemencoding()
+    if isinstance('', type(u'')):
+        tmp_data = data
+    else:
+        tmp_data = data.decode('utf-8').encode(coding)
+
+    return tmp_data
 
 
 if __name__ == '__main__':

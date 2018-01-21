@@ -6,15 +6,17 @@ by Kobe Gong. 2017-8-21
 """
 
 import datetime
-import sys
 import os
+import re
+import sys
 import threading
+
+import APIs.common_APIs as common_APIs
+
 if sys.platform == 'linux':
     pass
 else:
     import ctypes
-
-import APIs.common_APIs as common_APIs
 
 
 # Windows CMD命令行 字体颜色定义 text colors
@@ -59,7 +61,7 @@ STD_ERROR_HANDLE = -12
 
 cprint_lock = threading.Lock()
 
-if sys.platform == 'linux':
+if re.search(r'linux', sys.platform):
     pass
 else:
     std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
@@ -68,14 +70,15 @@ else:
 class cprint:
     @common_APIs.need_add_lock(cprint_lock)
     def set_colour(self, color):
-        if sys.platform == 'linux':
-            pass #print('\033[%sm' % self.style[color], end='')
+        if re.search(r'linux', sys.platform):
+            pass  # print('\033[%sm' % self.style[color], end='')
         else:
-            ctypes.windll.kernel32.SetConsoleTextAttribute(std_out_handle, color)
+            ctypes.windll.kernel32.SetConsoleTextAttribute(
+                std_out_handle, color)
 
     def reset_colour(self):
-        if sys.platform == 'linux':
-            pass#print('\033[0m', end='')
+        if re.search(r'linux', sys.platform):
+            pass  # print('\033[0m', end='')
         else:
             self.set_colour(FOREGROUND_WHITE)
 
@@ -122,7 +125,7 @@ class cprint:
             raise Exception
         except:
             f = sys.exc_info()[2].tb_frame.f_back
-        print ("%s%s [%s line:%s] %s%s" % (style, datetime.datetime.now(), repr(
+        print("%s%s [%s line:%s] %s%s" % (style, datetime.datetime.now(), repr(
             os.path.abspath(sys.argv[0])), f.f_lineno, self.name + string, end))
 
     def warn_p(self, string):

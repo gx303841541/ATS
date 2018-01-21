@@ -23,13 +23,15 @@ if sys.platform == 'linux':
     import queue as Queue
 else:
     import Queue
-
+if sys.getdefaultencoding() != 'utf-8':
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
 BUFF_SIZE = 512
 
 
 class MyServer:
-    def __init__(self, addr, logger, debug=False, singlethread=True, printB=False):
+    def __init__(self, addr, logger, debug=False, singlethread=True, printB=True):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setblocking(False)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -92,13 +94,19 @@ class MyServer:
 
                                 self.clients[self.conn_to_addr[conn]
                                              ]['queue_out'].put(dmsg)
+
+                                if isinstance(data, type(b'')):
+                                    tmp_data = data
+                                else:
+                                    tmp_data = data.encode('utf-8')
+
                                 if self.debug:
                                     if self.printB:
                                         self.LOG.info(protocol_data_printB(
-                                            data, title="Get data from " + self.conn_to_addr[conn][0] + ":"))
+                                            tmp_data, title="Get data from " + self.conn_to_addr[conn][0] + ":"))
                                     else:
                                         self.LOG.info(
-                                            "Get data from " + self.conn_to_addr[conn][0] + ": " + data)
+                                            "Get data from " + self.conn_to_addr[conn][0] + ": " + tmp_data.decode('utf-8'))
                             else:
                                 # Interpret empty result as closed connection
                                 self.LOG.error(
@@ -150,17 +158,19 @@ class MyServer:
                 else:
                     data = self.clients[self.conn_to_addr[client]
                                         ]['queue_out'].get()
-                    if isinstance(data, bytes):
-                        client.send(data)
+                    if isinstance(data, type(b'')):
+                        tmp_data = data
                     else:
-                        client.send(data.encode('utf-8'))
+                        tmp_data = data.encode('utf-8')
                     if self.debug:
                         if self.printB:
+                            self.LOG.yinfo("1")
                             self.LOG.yinfo(protocol_data_printB(
-                                data, title="Send data to " + self.conn_to_addr[client][0] + ":"))
+                                tmp_data, title="Send data to " + self.conn_to_addr[client][0] + ":"))
                         else:
                             self.LOG.yinfo(
-                                "Send data to " + self.conn_to_addr[client][0] + ": " + data)
+                                "Send data to " + self.conn_to_addr[client][0] + ": " + tmp_data.decode('utf-8'))
+                    client.send(tmp_data)
 
         except Exception as e:
             self.LOG.error(
@@ -175,7 +185,7 @@ class MyClient:
     state_lock = threading.Lock()
     conn_lock = threading.Lock()
 
-    def __init__(self, addr, logger, self_addr=None, debug=True, printB=False):
+    def __init__(self, addr, logger, self_addr=None, debug=True, printB=True):
         self.client = ''
         self.addr = addr
         self.LOG = logger
@@ -192,19 +202,6 @@ class MyClient:
     @common_APIs.need_add_lock(state_lock)
     def set_connected(self, value):
         self.connected = value
-
-    def run_forever(self, *arg):
-        while True:
-            while self.connected == False:
-                if self.connect():
-                    pass
-                else:
-                    time.sleep(1)
-
-            self.recv_once()
-
-            if self.connected == True and self.singlethread:
-                self.send_once()
 
     @common_APIs.need_add_lock(conn_lock)
     def connect(self):
@@ -244,11 +241,16 @@ class MyClient:
                 data = self.client.recv(BUFF_SIZE)
                 if data:
                     if self.debug:
+                        if isinstance(data, type(b'')):
+                            tmp_data = data
+                        else:
+                            tmp_data = data.encode('utf-8')
                         if self.printB:
                             self.LOG.info(protocol_data_printB(
-                                data, title="client get data:"))
+                                tmp_data, title="client get data:"))
                         else:
-                            self.LOG.info("client get data: %s" % (repr(data)))
+                            self.LOG.info("client get data: %s" %
+                                          (tmp_data.decode('utf-8')))
 
                 else:
                     self.LOG.error("Server maybe has closed!")
@@ -263,20 +265,24 @@ class MyClient:
             self.inputs.remove(self.client)
             self.set_connected(False)
 
-    def send_once(self, data=None, need_encode=False):
+    def send_once(self, data=None):
         try:
             if not self.get_connected():
                 return
+            if isinstance(data, type(b'')):
+                tmp_data = data
+            else:
+                tmp_data = data.encode('utf-8')
+
             if self.debug:
                 if self.printB:
                     self.LOG.yinfo(protocol_data_printB(
-                        data, title="client send date:"))
+                        tmp_data, title="client send date:"))
                 else:
-                    self.LOG.yinfo("client send data: %s" % (repr(data)))
-            if isinstance(data, bytes):
-                self.client.send(data)
-            else:
-                self.client.send(data.encode('utf-8'))
+                    self.LOG.yinfo("client send data: %s" %
+                                   (tmp_data.decode('utf-8')))
+
+            self.client.send(tmp_data)
 
         except Exception as e:
             self.LOG.error(

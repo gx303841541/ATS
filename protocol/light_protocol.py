@@ -40,7 +40,8 @@ class SDK(communication_base):
                                   logger=logger, left_data=b'', min_length=57)
         self.addr = addr
         self.name = 'Device controler'
-        self.connection = my_socket.MyClient(addr, logger, self_addr=self_addr)
+        self.connection = my_socket.MyClient(
+            addr, logger, self_addr=self_addr, debug=False)
         self.state = 'close'
         self.time_delay = time_delay
         self.sim_obj = None
@@ -56,8 +57,11 @@ class SDK(communication_base):
         self.pkg_number = b'\x00\x00\x00\x01'
 
     def msg_build(self, data, ack=b'\x01'):
-        self.LOG.yinfo("send msg:")
-        self.LOG.yinfo(self.convert_to_dictstr(data))
+        self.LOG.yinfo("send msg: " + self.convert_to_dictstr(data))
+        if isinstance(data, type(b'')):
+            pass
+        else:
+            data = data.encode('utf-8')
         if ack == b'\x00':
             src_id = self.device_id
             dst_id = b'\x30' * 20
@@ -66,6 +70,10 @@ class SDK(communication_base):
             src_id = self.device_id
             dst_id = b'\x30' * 20
 
+        if isinstance(src_id, type(b'')):
+            pass
+        else:
+            src_id = src_id.encode('utf-8')
         msg_head = self.version + src_id + dst_id + ack + self.pkg_number
         msg_length = self.get_msg_length(data)
         msg_crc16 = crc16(data)
@@ -122,7 +130,7 @@ class SDK(communication_base):
         coding = sys.getfilesystemencoding()
         ack = False
         if msg[0:4] == b'\x48\x44\x58\x4d':
-            if msg[4:4 + 20] == b'\x30' * 20 and msg[4 + 20:4 + 20 + 20] == self.device_id:
+            if msg[4:4 + 20] == b'\x30' * 20 and (msg[4 + 20:4 + 20 + 20] == self.device_id or msg[4 + 20:4 + 20 + 20] == self.device_id.encode('utf-8')):
                 if msg[44:45] != b'\x00':
                     self.LOG.info("Get ack!")
                     ack = True
@@ -130,9 +138,8 @@ class SDK(communication_base):
                 self.set_pkg_number(msg[45:49])
                 data_length = struct.unpack('>I', msg[49:53])[0]
                 crc16 = struct.unpack('>H', msg[55:57])
-                data = json.loads(msg[57:57 + data_length])
-                self.LOG.info("recv msg:")
-                self.LOG.info(self.convert_to_dictstr(data))
+                data = json.loads(msg[57:57 + data_length].decode('utf-8'))
+                self.LOG.info("recv msg: " + self.convert_to_dictstr(data))
                 rsp_msg = self.sim_obj.protocol_handler(data, ack)
                 if rsp_msg:
                     final_rsp_msg = self.msg_build(rsp_msg)

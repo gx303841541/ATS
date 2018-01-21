@@ -134,7 +134,7 @@ if __name__ == '__main__':
     global thread_list
     thread_list = []
 
-    server = my_socket.MyServer(('', 8888), LOG, debug=True, printB=False)
+    server = my_socket.MyServer(('', 8888), LOG, debug=True, printB=True)
     thread_list.append([server.run_forever])
     # thread_list.append([server.sendloop])
 

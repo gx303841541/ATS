@@ -6,27 +6,27 @@ import random
 Attribute_initialization = {
     "_type": 2016,
     "_subDeviceType": 88,
-    "_deviceID": b"12345678901234567890",
-    "_subDeviceID": b"1001201600FF81992F49",
-    "_name": b'dog door',
-    "_manufacturer": b'HDIOT',
+    "_deviceID": "12345678901234567890",
+    "_subDeviceID": "1001201600FF81992F49",
+    "_name": 'dog door',
+    "_manufacturer": 'HDIOT',
     "_ip": "192.168.0.235",
-    "_mac": b'00:FF:81:99:2F:49',
-    "_mask": b'255.255.255.0',
-    "_version": b'1.0.01',
+    "_mac": '00:FF:81:99:2F:49',
+    "_mask": '255.255.255.0',
+    "_version": '1.0.01',
     "_time": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S').encode('utf-8'),
-    "_appVersionInfo": b'appVersionInfo.8.8.8',
-    "_fileServerUrl": b'http://192.168.10.1/noexist',
-    "_ntpServer": b'4.4.4.4',
+    "_appVersionInfo": 'appVersionInfo.8.8.8',
+    "_fileServerUrl": 'http://192.168.10.1/noexist',
+    "_ntpServer": '4.4.4.4',
     "_openDuration": 10,
     "_current_openDuration": 10,
     "_alarmTimeout": 20,
-    "_startTime": b'1988-08-08',
-    "_endTime": b'2888-08-08',
-    "_UserType": b'',
-    "_userID": b'',
-    "_CredenceType": b'',
-    "_credenceNo": b'12345678',
+    "_startTime": '1988-08-08',
+    "_endTime": '2888-08-08',
+    "_UserType": '',
+    "_userID": '',
+    "_CredenceType": '',
+    "_credenceNo": '12345678',
     "_State": 0,
     "SPECIAL_ITEM": {
         "_State": {
@@ -79,6 +79,7 @@ defined_record = [
 
 
 Command_list = {
+    "COM_HEARTBEAT": {"msg": "心跳"},
     "COM_UPLOAD_DEV_STATUS": {"msg": "设备状态上报"},
     "COM_UPLOAD_RECORD": {"msg": "记录上传"},
     "COM_UPLOAD_EVENT": {"msg": "事件上报"},
@@ -99,6 +100,14 @@ Command_list = {
     "COM_DELETE_CERTIFICATE_IN_BATCH": {"msg": "清除固定凭证操作"},
     "COM_GATE_CONTROL": {"msg": "开关闸（门）"},
     "COM_QUERY_DEV_STATUS": {"msg": "设备状态查询"},
+}
+
+
+u'''心跳'''
+COM_HEARTBEAT = {
+    "send_msg": {
+        "Command": 'COM_HEARTBEAT',
+    }
 }
 
 

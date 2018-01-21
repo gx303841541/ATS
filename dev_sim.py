@@ -230,7 +230,7 @@ if __name__ == '__main__':
     thread_list.append([sdk.schedule_loop])
     thread_list.append([sdk.send_data_loop])
     thread_list.append([sdk.recv_data_loop])
-    thread_list.append([sdk.heartbeat_loop])
+    # thread_list.append([sdk.heartbeat_loop])
     thread_list.append([sim.run_forever])
 
     sys_proc()

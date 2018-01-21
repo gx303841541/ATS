@@ -7,17 +7,17 @@ by Kobe Gong. 2017-8-21
 
 import logging
 import os
+import re
 import sys
 import traceback
 from logging.handlers import RotatingFileHandler
 
 from .cprint import cprint
 
-if sys.platform == 'linux':
+if re.search(r'linux', sys.platform):
     import coloredlogs
     coloredlogs.DEFAULT_DATE_FORMAT = ''
     coloredlogs.DEFAULT_LOG_FORMAT = '[%(asctime)s] [%(levelname)s] %(message)s'
-
 
 
 # Windows CMD命令行 字体颜色定义 text colors
@@ -59,17 +59,18 @@ BACKGROUND_WHITE = 0xf0  # white.
 
 class MyLogger:
     def __init__(self, path, clevel=logging.DEBUG, cenable=True, flevel=logging.DEBUG, fenable=True, rlevel=logging.DEBUG, renable=False):
-        if sys.platform == 'linux':
+        if re.search(r'linux', sys.platform):
             coloredlogs.install(level=clevel)
 
         self.cprint = cprint()
         self.p = logging.getLogger(path)
         self.p.setLevel(logging.DEBUG)
         #fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', '%m-%d %H:%M:%S')
-        self.fmt = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
+        self.fmt = logging.Formatter(
+            '[%(asctime)s] [%(levelname)s] %(message)s')
 
         # 设置CMD日志
-        if cenable == True and sys.platform == 'linux':
+        if cenable == True and re.search(r'linux', sys.platform):
             pass
         else:
             self.sh = logging.StreamHandler()

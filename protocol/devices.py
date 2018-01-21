@@ -125,7 +125,7 @@ class AirSim(BaseSim):
         coding = sys.getfilesystemencoding()
         if msg['method'] == 'dm_get':
             if msg['nodeid'] == u"airconditioner.new.all_properties":
-                self.LOG.warn("获取所有属性".decode('utf-8').encode(coding))
+                self.LOG.warn("获取所有属性".encode(coding))
                 rsp_msg = {
                     "method": "dm_get",
                     "req_id": msg['req_id'],
@@ -142,7 +142,7 @@ class AirSim(BaseSim):
                 }
                 return json.dumps(rsp_msg)
             if msg['nodeid'] == u"airconditioner.main.all_properties":
-                self.LOG.warn("获取所有属性".decode('utf-8').encode(coding))
+                self.LOG.warn("获取所有属性".encode(coding))
                 rsp_msg = {
                     "method": "dm_get",
                     "req_id": msg['req_id'],
@@ -164,7 +164,7 @@ class AirSim(BaseSim):
         elif msg['method'] == 'dm_set':
             if msg['nodeid'] == u"airconditioner.main.switch":
                 self.LOG.warn(
-                    ("开关机: %s" % (msg['params']["attribute"]["switch"])).decode('utf-8').encode(coding))
+                    ("开关机: %s" % (msg['params']["attribute"]["switch"])).encode(coding))
                 self.set_item('_switchStatus',
                               msg['params']["attribute"]["switch"])
                 rsp_msg = {
@@ -176,7 +176,7 @@ class AirSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"airconditioner.main.mode":
                 self.LOG.warn(
-                    ("设置模式: %s" % (msg['params']["attribute"]["mode"])).decode('utf-8').encode(coding))
+                    ("设置模式: %s" % (msg['params']["attribute"]["mode"])).encode(coding))
                 self.set_item('_mode', msg['params']["attribute"]["mode"])
                 rsp_msg = {
                     "method": "dm_set",
@@ -187,7 +187,7 @@ class AirSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"airconditioner.main.temperature":
                 self.LOG.warn(
-                    ("设置温度: %s" % (msg['params']["attribute"]["temperature"])).decode('utf-8').encode(coding))
+                    ("设置温度: %s" % (msg['params']["attribute"]["temperature"])).encode(coding))
                 self.set_item('_temperature',
                               msg['params']["attribute"]["temperature"])
                 rsp_msg = {
@@ -199,7 +199,7 @@ class AirSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"airconditioner.main.speed":
                 self.LOG.warn(
-                    ("设置风速: %s" % (msg['params']["attribute"]["speed"])).decode('utf-8').encode(coding))
+                    ("设置风速: %s" % (msg['params']["attribute"]["speed"])).encode(coding))
                 self.set_item('_speed', msg['params']["attribute"]["speed"])
                 rsp_msg = {
                     "method": "dm_set",
@@ -210,7 +210,7 @@ class AirSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"airconditioner.main.wind_up_down":
                 self.LOG.warn(
-                    ("设置上下摆风: %s" % (msg['params']["attribute"]["wind_up_down"])).decode('utf-8').encode(coding))
+                    ("设置上下摆风: %s" % (msg['params']["attribute"]["wind_up_down"])).encode(coding))
                 self.set_item('_wind_up_down',
                               msg['params']["attribute"]["wind_up_down"])
                 rsp_msg = {
@@ -222,7 +222,7 @@ class AirSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"airconditioner.main.wind_left_right":
                 self.LOG.warn(
-                    ("设置左右摆风: %s" % (msg['params']["attribute"]["wind_left_right"])).decode('utf-8').encode(coding))
+                    ("设置左右摆风: %s" % (msg['params']["attribute"]["wind_left_right"])).encode(coding))
                 self.set_item('_wind_left_right',
                               msg['params']["attribute"]["wind_left_right"])
                 rsp_msg = {
@@ -315,7 +315,7 @@ class HangerSim(BaseSim):
         coding = sys.getfilesystemencoding()
         if msg['method'] == 'dm_get':
             if msg['nodeid'] == u"clothes_hanger.main.all_properties":
-                self.LOG.warn("获取所有属性".decode('utf-8').encode(coding))
+                self.LOG.warn("获取所有属性".encode(coding))
                 rsp_msg = {
                     "method": "dm_get",
                     "req_id": msg['req_id'],
@@ -342,7 +342,7 @@ class HangerSim(BaseSim):
         elif msg['method'] == 'dm_set':
             if msg['nodeid'] == u"clothes_hanger.main.control":
                 self.LOG.warn(
-                    ("设置上下控制: %s" % (msg['params']["attribute"]["control"])).decode('utf-8').encode(coding))
+                    ("设置上下控制: %s" % (msg['params']["attribute"]["control"])).encode(coding))
                 self.set_item('_status', msg['params']["attribute"]["control"])
 
                 if self._status == 'up':
@@ -366,7 +366,7 @@ class HangerSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"clothes_hanger.main.light":
                 self.LOG.warn(
-                    ("设置照明: %s" % (msg['params']["attribute"]["light"])).decode('utf-8').encode(coding))
+                    ("设置照明: %s" % (msg['params']["attribute"]["light"])).encode(coding))
                 self.set_item('_light', msg['params']["attribute"]["light"])
                 rsp_msg = {
                     "method": "dm_set",
@@ -377,7 +377,7 @@ class HangerSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"clothes_hanger.main.sterilization":
                 self.LOG.warn(
-                    ("设置杀菌: %s" % (msg['params']["attribute"]["sterilization"])).decode('utf-8').encode(coding))
+                    ("设置杀菌: %s" % (msg['params']["attribute"]["sterilization"])).encode(coding))
                 self.set_item('_sterilization',
                               msg['params']["attribute"]["sterilization"])
                 rsp_msg = {
@@ -389,7 +389,7 @@ class HangerSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"clothes_hanger.main.sterilization_duration":
                 self.LOG.warn(
-                    ("设置杀菌时间: %s" % (msg['params']["attribute"]["sterilization_duration"])).decode('utf-8').encode(coding))
+                    ("设置杀菌时间: %s" % (msg['params']["attribute"]["sterilization_duration"])).encode(coding))
                 self.set_item('_sterilization_duration',
                               msg['params']["attribute"]["sterilization_duration"])
                 self.set_item('_sterilization_remain',
@@ -403,7 +403,7 @@ class HangerSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"clothes_hanger.main.drying":
                 self.LOG.warn(
-                    ("设置烘干: %s" % (msg['params']["attribute"]["drying"])).decode('utf-8').encode(coding))
+                    ("设置烘干: %s" % (msg['params']["attribute"]["drying"])).encode(coding))
                 self.set_item('_drying', msg['params']["attribute"]["drying"])
                 if self._drying == 'on':
                     self.set_item('_air_drying', 'off')
@@ -416,7 +416,7 @@ class HangerSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"clothes_hanger.main.drying_duration":
                 self.LOG.warn(
-                    ("设置烘干时间: %s" % (msg['params']["attribute"]["drying_duration"])).decode('utf-8').encode(coding))
+                    ("设置烘干时间: %s" % (msg['params']["attribute"]["drying_duration"])).encode(coding))
                 self.set_item('_drying_duration',
                               msg['params']["attribute"]["drying_duration"])
                 self.set_item('_drying_remain', self._drying_duration)
@@ -429,7 +429,7 @@ class HangerSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"clothes_hanger.main.air_drying":
                 self.LOG.warn(
-                    ("设置风干: %s" % (msg['params']["attribute"]["air_drying"])).decode('utf-8').encode(coding))
+                    ("设置风干: %s" % (msg['params']["attribute"]["air_drying"])).encode(coding))
                 self.set_item(
                     '_air_drying', msg['params']["attribute"]["air_drying"])
 
@@ -444,7 +444,7 @@ class HangerSim(BaseSim):
                 return json.dumps(rsp_msg)
             elif msg['nodeid'] == u"clothes_hanger.main.air_drying_duration":
                 self.LOG.warn(
-                    ("设置风干时间: %s" % (msg['params']["attribute"]["air_drying_duration"])).decode('utf-8').encode(coding))
+                    ("设置风干时间: %s" % (msg['params']["attribute"]["air_drying_duration"])).encode(coding))
                 self.set_item('_air_drying_duration',
                               msg['params']["attribute"]["air_drying_duration"])
                 self.set_item('_air_drying_remain', self._air_drying_duration)
@@ -525,7 +525,7 @@ class WaterFilter(BaseSim):
         coding = sys.getfilesystemencoding()
         if msg['method'] == 'dm_get':
             if msg['nodeid'] == u"water_filter.main.all_properties":
-                self.LOG.warn("获取所有属性".decode('utf-8').encode(coding))
+                self.LOG.warn("获取所有属性".encode(coding))
                 rsp_msg = {
                     "method": "dm_get",
                     "req_id": msg['req_id'],
@@ -547,7 +547,7 @@ class WaterFilter(BaseSim):
         elif msg['method'] == 'dm_set':
             if msg['nodeid'] == u"water_filter.main.control":
                 self.LOG.warn(
-                    ("设置冲洗: %s" % (msg['params']["attribute"]["control"])).decode('utf-8').encode(coding))
+                    ("设置冲洗: %s" % (msg['params']["attribute"]["control"])).encode(coding))
                 self.set_item('_status', msg['params']["attribute"]["control"])
                 rsp_msg = {
                     "method": "dm_set",
@@ -561,7 +561,7 @@ class WaterFilter(BaseSim):
 
             elif msg['nodeid'] == u"water_filter.main.reset_filter":
                 self.LOG.warn(
-                    ("复位滤芯: %s" % (msg['params']["attribute"]["reset_filter"])).decode('utf-8').encode(coding))
+                    ("复位滤芯: %s" % (msg['params']["attribute"]["reset_filter"])).encode(coding))
                 filter_ids = msg['params']["attribute"]["reset_filter"]
                 if 0 in filter_ids:
                     filter_ids = self.filter_time_used.keys()
@@ -626,7 +626,7 @@ class AirFilter(BaseSim):
         coding = sys.getfilesystemencoding()
         if msg['method'] == 'dm_get':
             if msg['nodeid'] == u"air_filter.main.all_properties":
-                self.LOG.warn("获取所有属性".decode('utf-8').encode(coding))
+                self.LOG.warn("获取所有属性".encode(coding))
                 rsp_msg = {
                     "method": "dm_get",
                     "req_id": msg['req_id'],
@@ -650,7 +650,7 @@ class AirFilter(BaseSim):
         elif msg['method'] == 'dm_set':
             if msg['nodeid'] == u"air_filter.main.switch":
                 self.LOG.warn(
-                    ("开关机: %s" % (msg['params']["attribute"]["switch"])).decode('utf-8').encode(coding))
+                    ("开关机: %s" % (msg['params']["attribute"]["switch"])).encode(coding))
                 self.set_item('_switch_status',
                               msg['params']["attribute"]["switch"])
                 rsp_msg = {
@@ -663,7 +663,7 @@ class AirFilter(BaseSim):
 
             elif msg['nodeid'] == u"air_filter.main.child_lock_switch":
                 self.LOG.warn(
-                    ("童锁开关: %s" % (msg['params']["attribute"]["child_lock_switch"])).decode('utf-8').encode(coding))
+                    ("童锁开关: %s" % (msg['params']["attribute"]["child_lock_switch"])).encode(coding))
                 self.set_item('_child_lock_switch_status',
                               msg['params']["attribute"]["child_lock_switch"])
                 rsp_msg = {
@@ -676,7 +676,7 @@ class AirFilter(BaseSim):
 
             elif msg['nodeid'] == u"air_filter.main.negative_ion_switch":
                 self.LOG.warn(
-                    ("负离子开关: %s" % (msg['params']["attribute"]["negative_ion_switch"])).decode('utf-8').encode(coding))
+                    ("负离子开关: %s" % (msg['params']["attribute"]["negative_ion_switch"])).encode(coding))
                 self.set_item('_negative_ion_switch_status',
                               msg['params']["attribute"]["negative_ion_switch"])
                 rsp_msg = {
@@ -689,7 +689,7 @@ class AirFilter(BaseSim):
 
             elif msg['nodeid'] == u"air_filter.main.control":
                 self.LOG.warn(
-                    ("设置模式切换: %s" % (msg['params']["attribute"]["control"])).decode('utf-8').encode(coding))
+                    ("设置模式切换: %s" % (msg['params']["attribute"]["control"])).encode(coding))
                 self.set_item('_control_status',
                               msg['params']["attribute"]["control"])
                 rsp_msg = {
@@ -702,7 +702,7 @@ class AirFilter(BaseSim):
 
             elif msg['nodeid'] == u"air_filter.main.speed":
                 self.LOG.warn(
-                    ("设置风量调节: %s" % (msg['params']["attribute"]["speed"])).decode('utf-8').encode(coding))
+                    ("设置风量调节: %s" % (msg['params']["attribute"]["speed"])).encode(coding))
                 self.set_item('_speed', msg['params']["attribute"]["speed"])
                 rsp_msg = {
                     "method": "dm_set",
@@ -775,7 +775,7 @@ class Washer(BaseSim):
         coding = sys.getfilesystemencoding()
         if msg['method'] == 'dm_get':
             if msg['nodeid'] == u"wash_machine.main.all_properties":
-                self.LOG.warn("获取所有属性".decode('utf-8').encode(coding))
+                self.LOG.warn("获取所有属性".encode(coding))
                 rsp_msg = {
                     "method": "dm_get",
                     "req_id": msg['req_id'],
@@ -801,7 +801,7 @@ class Washer(BaseSim):
         elif msg['method'] == 'dm_set':
             if msg['nodeid'] == u"wash_machine.main.control":
                 self.LOG.warn(
-                    ("启动暂停: %s" % (msg['params']["attribute"]["control"])).decode('utf-8').encode(coding))
+                    ("启动暂停: %s" % (msg['params']["attribute"]["control"])).encode(coding))
                 self.set_item('_status', msg['params']["attribute"]["control"])
                 self.set_item('_time_left', 10)
                 rsp_msg = {
@@ -814,7 +814,7 @@ class Washer(BaseSim):
 
             elif msg['nodeid'] == u"wash_machine.main.child_lock_switch":
                 self.LOG.warn(
-                    ("童锁开关: %s" % (msg['params']["attribute"]["child_lock_switch"])).decode('utf-8').encode(coding))
+                    ("童锁开关: %s" % (msg['params']["attribute"]["child_lock_switch"])).encode(coding))
                 self.set_item('_child_lock_switch_status',
                               msg['params']["attribute"]["child_lock_switch"])
                 rsp_msg = {
@@ -827,7 +827,7 @@ class Washer(BaseSim):
 
             elif msg['nodeid'] == u"wash_machine.main.auto_detergent_switch":
                 self.LOG.warn(
-                    ("设置智能投放: %s" % (msg['params']["attribute"]["auto_detergent_switch"])).decode('utf-8').encode(coding))
+                    ("设置智能投放: %s" % (msg['params']["attribute"]["auto_detergent_switch"])).encode(coding))
                 self.set_item('_auto_detergent_switch',
                               msg['params']["attribute"]["auto_detergent_switch"])
                 rsp_msg = {
@@ -840,7 +840,7 @@ class Washer(BaseSim):
 
             elif msg['nodeid'] == u"wash_machine.main.add_laundry_switch":
                 self.LOG.warn(
-                    ("设置中途添衣: %s" % (msg['params']["attribute"]["add_laundry_switch"])).decode('utf-8').encode(coding))
+                    ("设置中途添衣: %s" % (msg['params']["attribute"]["add_laundry_switch"])).encode(coding))
                 self.set_item('_add_laundry_switch',
                               msg['params']["attribute"]["add_laundry_switch"])
                 rsp_msg = {
@@ -853,7 +853,7 @@ class Washer(BaseSim):
 
             elif msg['nodeid'] == u"wash_machine.main.sterilization":
                 self.LOG.warn(
-                    ("一键除菌: %s" % (msg['params']["attribute"]["sterilization"])).decode('utf-8').encode(coding))
+                    ("一键除菌: %s" % (msg['params']["attribute"]["sterilization"])).encode(coding))
                 self.set_item('_sterilization',
                               msg['params']["attribute"]["sterilization"])
                 rsp_msg = {
@@ -866,7 +866,7 @@ class Washer(BaseSim):
 
             elif msg['nodeid'] == u"wash_machine.main.mode":
                 self.LOG.warn(
-                    ("设置模式: %s" % (msg['params']["attribute"]["mode"])).decode('utf-8').encode(coding))
+                    ("设置模式: %s" % (msg['params']["attribute"]["mode"])).encode(coding))
                 self.set_item('_mode', msg['params']["attribute"]["mode"])
                 rsp_msg = {
                     "method": "dm_set",
@@ -878,7 +878,7 @@ class Washer(BaseSim):
 
             elif msg['nodeid'] == u"wash_machine.main.spin":
                 self.LOG.warn(
-                    ("设置脱水: %s" % (msg['params']["attribute"]["spin"])).decode('utf-8').encode(coding))
+                    ("设置脱水: %s" % (msg['params']["attribute"]["spin"])).encode(coding))
                 self.set_item('_spin', msg['params']["attribute"]["spin"])
                 rsp_msg = {
                     "method": "dm_set",
@@ -890,7 +890,7 @@ class Washer(BaseSim):
 
             elif msg['nodeid'] == u"wash_machine.main.temperature":
                 self.LOG.warn(
-                    ("设置温度: %s" % (msg['params']["attribute"]["temperature"])).decode('utf-8').encode(coding))
+                    ("设置温度: %s" % (msg['params']["attribute"]["temperature"])).encode(coding))
                 self.set_item('_temperature',
                               msg['params']["attribute"]["temperature"])
                 rsp_msg = {
@@ -903,7 +903,7 @@ class Washer(BaseSim):
 
             elif msg['nodeid'] == u"wash_machine.main.reserve_wash":
                 self.LOG.warn(
-                    ("设置预约功能: %s" % (msg['params']["attribute"]["reserve_wash"])).decode('utf-8').encode(coding))
+                    ("设置预约功能: %s" % (msg['params']["attribute"]["reserve_wash"])).encode(coding))
                 self.set_item('_reserve_wash',
                               msg['params']["attribute"]["reserve_wash"])
                 rsp_msg = {
@@ -923,7 +923,6 @@ class Washer(BaseSim):
 
 class Door(BaseSim):
     def __init__(self, logger, sdk_obj, config_file):
-        print os.getcwd()
         module_name = "protocol.config.%s" % config_file
         mod = __import__(module_name)
         components = module_name.split('.')
@@ -935,9 +934,6 @@ class Door(BaseSim):
         self.sdk_obj.sim_obj = self
         self.attribute_initialization()
         self.sdk_obj.device_id = self._deviceID
-        self.sdk_obj.heartbeat_interval = 60
-        self.sdk_obj.heartbeat_data = self.sdk_obj.msg_build(
-            self.get_heartbeat_msg())
 
         # state data:
         self.task_obj = Task('Washer-task', self.LOG)
@@ -955,7 +951,10 @@ class Door(BaseSim):
             'dev register', self.to_register_dev, 1, 1)
 
         self.task_obj.add_task(
-            'check register', self.check_register_dev, 1, 10)
+            'check register', self.check_register_dev, 1, 5)
+
+        self.task_obj.add_task(
+            'heartbeat', self.to_send_heartbeat, 1000000, 60)
 
         return self.task_obj.task_proc()
 
@@ -995,23 +994,27 @@ class Door(BaseSim):
                 self.old_status[item] = copy.deepcopy(self.__dict__[item])
 
         if need_send_report:
-            self.LOG.warn("记录上传".decode('utf-8').encode(coding))
+            self.LOG.warn(common_APIs.chinese_show("记录上传"))
             self.send_msg(self.get_upload_status())
 
     def to_register_dev(self):
         if self.dev_register:
-            self.LOG.debug("设备已经注册".decode('utf-8').encode(coding))
+            self.LOG.debug(common_APIs.chinese_show("设备已经注册"))
         else:
-            self.LOG.debug("发送设备注册".decode('utf-8').encode(coding))
+            self.LOG.debug(common_APIs.chinese_show("发送设备注册"))
             self.send_msg(json.dumps(
                 self.get_send_msg('COM_DEV_REGISTER')))
 
+    def to_send_heartbeat(self):
+        self.send_msg(json.dumps(
+            self.get_send_msg('COM_HEARTBEAT')))
+
     def check_register_dev(self):
         if self.dev_register:
-            self.LOG.debug("设备已经注册".decode('utf-8').encode(coding))
+            self.LOG.yinfo(common_APIs.chinese_show("设备已经注册"))
         else:
-            self.LOG.error("设备注册失败".decode('utf-8').encode(coding))
-            # sys.exit()
+            self.LOG.error(common_APIs.chinese_show("设备注册失败"))
+            sys.exit()
 
     def get_upload_status(self):
         return json.dumps(self.get_send_msg('COM_UPLOAD_DEV_STATUS'))
@@ -1026,17 +1029,10 @@ class Door(BaseSim):
         report_msg["Data"][0]["EventType"] = event_type
         return json.dumps(report_msg)
 
-    def get_heartbeat_msg(self):
-        report_msg = {
-            "Command": "COM_HEARTBEAT",
-        }
-        return json.dumps(report_msg)
-
     def protocol_handler(self, msg, ack=False):
         coding = sys.getfilesystemencoding()
         if ack:
             if msg['Command'] == 'COM_DEV_REGISTER':
-                self.LOG.warn("设备注册应答: ".decode('utf-8').encode(coding))
                 self.dev_register = True
                 return None
             else:
@@ -1056,7 +1052,6 @@ class Door(BaseSim):
         command = getattr(self.sim_config, command)
         command_str = str(command)
         command_str = self.command_param_replace(command_str)
-        # self.LOG.warn(command_str)
         return eval(command_str.replace("'##", "").replace("##'", ""))
 
     def command_param_replace(self, command_str):
