@@ -19,9 +19,9 @@ import APIs.common_APIs as common_APIs
 from APIs.common_APIs import protocol_data_printB
 from basic.log_tool import MyLogger
 
-if sys.platform == 'linux':
+try:
     import queue as Queue
-else:
+except:
     import Queue
 if sys.getdefaultencoding() != 'utf-8':
     reload(sys)

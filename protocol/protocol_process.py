@@ -20,9 +20,9 @@ from collections import defaultdict
 import APIs.common_APIs as common_APIs
 from APIs.common_APIs import protocol_data_printB
 
-if sys.platform == 'linux':
+try:
     import queue as Queue
-else:
+except:
     import Queue
 
 

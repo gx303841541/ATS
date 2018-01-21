@@ -24,9 +24,9 @@ import connections.my_socket as my_socket
 from APIs.common_APIs import crc, crc16, protocol_data_printB
 from protocol.protocol_process import communication_base
 
-if sys.platform == 'linux':
+try:
     import queue as Queue
-else:
+except:
     import Queue
 
 
