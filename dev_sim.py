@@ -17,6 +17,7 @@ import random
 import re
 import shutil
 import signal
+import socket
 import struct
 import subprocess
 import sys
@@ -32,7 +33,6 @@ from basic.cprint import cprint
 from basic.log_tool import MyLogger
 from basic.task import Task
 from protocol.devices import Door
-from protocol.light_protocol import SDK
 
 if sys.getdefaultencoding() != 'utf-8':
     reload(sys)
@@ -88,13 +88,37 @@ class ArgHandle():
             default="door_conf",
             help='Specify device type',
         )
+        parser.add_argument(
+            '-c', '--count',
+            dest='device_count',
+            action='store',
+            default=1,
+            type=int,
+            help='Specify how many devices to start, default is only 1',
+        )
         return parser
 
     def get_args(self, attrname):
         return getattr(self.args, attrname)
 
     def check_args(self):
-        pass
+        if arg_handle.get_args('device_count') > 1 and not arg_handle.get_args('self_IP'):
+            cprint.error_p(
+                "if device count big than 1, self_IP prefix must assign")
+            sys.exit()
+        elif arg_handle.get_args('device_count') > 1:
+            ipv4s = common_APIs.get_local_ipv4()
+            ipv4s = [ip for ip in ipv4s if re.search(
+                r'%s' % (arg_handle.get_args('self_IP')), ip)]
+            if len(ipv4s) < arg_handle.get_args('device_count'):
+                cprint.error_p("Local ips: %d not enough" % (len(ipv4s)))
+                sys.exit()
+            else:
+                global ipv4_list
+                ipv4_list = ipv4s
+
+        else:
+            pass
 
     def run(self):
         self.args = self.parser.parse_args()
@@ -103,10 +127,9 @@ class ArgHandle():
 
 
 class MyCmd(Cmd):
-    def __init__(self, logger, sdk_obj=None, sim_obj=None):
+    def __init__(self, logger, sim_obj=None):
         Cmd.__init__(self)
         self.prompt = "SIM>"
-        self.sdk_obj = sdk_obj
         self.sim_obj = sim_obj
         self.LOG = logger
 
@@ -218,20 +241,25 @@ if __name__ == '__main__':
     global thread_list
     thread_list = []
 
-    self_addr = None
-    if arg_handle.get_args('self_IP'):
-        self_addr = (arg_handle.get_args('self_IP'),
-                     random.randint(arg_handle.get_args('server_port'), 65535))
+    sims = {}
+    if arg_handle.get_args('device_count') == 1:
+        self_addr = None
+        if arg_handle.get_args('self_IP'):
+            self_addr = (arg_handle.get_args('self_IP'),
+                         random.randint(arg_handle.get_args('server_port'), 65535))
 
-    sdk = SDK((arg_handle.get_args('server_IP'), arg_handle.get_args('server_port')), logger=LOG,
-              time_delay=arg_handle.get_args('time_delay'), self_addr=self_addr)
-    sim = Door(logger=LOG, sdk_obj=sdk,
-               config_file=arg_handle.get_args('config_file'))
-    thread_list.append([sdk.schedule_loop])
-    thread_list.append([sdk.send_data_loop])
-    thread_list.append([sdk.recv_data_loop])
-    # thread_list.append([sdk.heartbeat_loop])
-    thread_list.append([sim.run_forever])
+        sim=Door(logger = LOG, config_file = arg_handle.get_args('config_file'), server_addr = (
+            arg_handle.get_args('server_IP'), arg_handle.get_args('server_port')), self_addr = self_addr)
+        thread_list.append([sim.run_forever])
+        sims[0]=sim
+
+    else:
+        for i in range(arg_handle.get_args('device_count')):
+            self_addr = (ipv4_list[i], random.randint(arg_handle.get_args('server_port'), 65535))
+            sim = Door(logger=LOG, config_file=arg_handle.get_args('config_file'), server_addr=(
+                arg_handle.get_args('server_IP'), arg_handle.get_args('server_port')), self_addr=self_addr)
+            thread_list.append([sim.run_forever])
+            sims[i] = sim
 
     sys_proc()
 
@@ -241,9 +269,9 @@ if __name__ == '__main__':
         sim.sdk_obj.queue_in.put(dmsg)
 
     if True:
-        signal.signal(signal.SIGINT, lambda signal,
-                      frame: cprint.notice_p('Exit SYSTEM: exit'))
-        my_cmd = MyCmd(logger=LOG, sdk_obj=sdk, sim_obj=sim)
+        # signal.signal(signal.SIGINT, lambda signal,
+        #              frame: cprint.notice_p('Exit SYSTEM: exit'))
+        my_cmd = MyCmd(logger=LOG, sim_obj=sim)
         my_cmd.cmdloop()
 
     else:

@@ -28,14 +28,28 @@ Attribute_initialization = {
     "_CredenceType": '',
     "_credenceNo": '12345678',
     "_State": 0,
+
     "SPECIAL_ITEM": {
         "_State": {
             "init_value": 0,
             "wait_time": 8,
             "use":  ["maintain", "report"],
         }
+    },
+
+
+
+    "test_msgs": {
+        "interval": 50,
+        "msgs": {
+            "COM_UPLOAD_DEV_STATUS": 5,
+            "COM_UPLOAD_RECORD.Data[0].RecordType.REMOTE_OPEN_DOOR_RECORD": 8,
+            "COM_UPLOAD_RECORD.Data[0].RecordType.BUTTON_OPEN_DOOR_RECORD": 7,
+            "COM_UPLOAD_EVENT.Data[0].EventType.NFC_EVENT": 10,
+        }
     }
 }
+
 
 defined_event = [
     "TAMPER_ALARM",

@@ -11,6 +11,7 @@ import functools
 import hashlib
 import os
 import re
+import socket
 import struct
 import sys
 import threading
@@ -206,6 +207,11 @@ def chinese_show(data):
         tmp_data = data.decode('utf-8').encode(coding)
 
     return tmp_data
+
+
+def get_local_ipv4():
+    addrs = socket.getaddrinfo(socket.gethostname(), None)
+    return [item[4][0] for item in addrs if ':' not in item[4][0]]
 
 
 if __name__ == '__main__':

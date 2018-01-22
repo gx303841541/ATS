@@ -922,7 +922,7 @@ class Washer(BaseSim):
 
 
 class Door(BaseSim):
-    def __init__(self, logger, sdk_obj, config_file):
+    def __init__(self, logger, config_file, server_addr, self_addr=None):
         module_name = "protocol.config.%s" % config_file
         mod = __import__(module_name)
         components = module_name.split('.')
@@ -930,9 +930,10 @@ class Door(BaseSim):
             mod = getattr(mod, comp)
         self.sim_config = mod
         self.LOG = logger
-        self.sdk_obj = sdk_obj
-        self.sdk_obj.sim_obj = self
         self.attribute_initialization()
+        self.sdk_obj = SDK(addr=server_addr,
+                           logger=logger, time_delay=0, self_addr=self_addr)
+        self.sdk_obj.sim_obj = self
         self.sdk_obj.device_id = self._deviceID
 
         # state data:
@@ -956,7 +957,42 @@ class Door(BaseSim):
         self.task_obj.add_task(
             'heartbeat', self.to_send_heartbeat, 1000000, 60)
 
-        return self.task_obj.task_proc()
+        thread_list = []
+        thread_list.append([self.sdk_obj.schedule_loop])
+        thread_list.append([self.sdk_obj.send_data_loop])
+        thread_list.append([self.sdk_obj.recv_data_loop])
+        thread_list.append([self.task_obj.task_proc])
+        thread_list.append([self.msg_dispatch])
+        thread_ids = []
+        for th in thread_list:
+            thread_ids.append(threading.Thread(target=th[0], args=th[1:]))
+
+        for th in thread_ids:
+            th.setDaemon(True)
+            th.start()
+
+    def msg_dispatch(self):
+        msgs = []
+
+        for msg in self.test_msgs["msgs"]:
+            for i in range(self.test_msgs["msgs"][msg]):
+                msgs.append(msg)
+        random.shuffle(msgs)
+        for msg in msgs:
+            self.LOG.debug(msg)
+        while True:
+            for msg in msgs:
+                time.sleep(self.test_msgs["interval"] / 1000.0)
+                tmp_msg = msg.split('.')
+                if tmp_msg[0] == 'COM_UPLOAD_DEV_STATUS':
+                    self.send_msg(self.get_upload_status())
+                elif tmp_msg[0] == 'COM_UPLOAD_RECORD':
+                    self.send_msg(self.get_upload_record(tmp_msg[-1]))
+                elif tmp_msg[0] == 'COM_UPLOAD_EVENT':
+                    self.send_msg(self.get_upload_event(tmp_msg[-1]))
+                else:
+                    self.LOG.error("Unknow msg to dispatch: %s" % (msg))
+            time.sleep(9999)
 
     def status_maintain(self):
         for item in self.SPECIAL_ITEM:
@@ -1051,15 +1087,11 @@ class Door(BaseSim):
     def get_command_msg(self, command):
         command = getattr(self.sim_config, command)
         command_str = str(command)
-        command_str = self.command_param_replace(command_str)
-        return eval(command_str.replace("'##", "").replace("##'", ""))
-
-    def command_param_replace(self, command_str):
         command_str = re.sub(r'\'TIMENOW\'', '"%s"' % datetime.datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S'), command_str)
         command_str = re.sub(r'\'randint1\'', '"%s"' %
                              random.randint(0, 1), command_str)
-        return command_str
+        return eval(command_str.replace("'##", "").replace("##'", ""))
 
     def get_record_list(self):
         return getattr(self.sim_config, "defined_record")
