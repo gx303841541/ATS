@@ -33,7 +33,7 @@ except:
 class SDK(communication_base):
     state_lock = threading.Lock()
 
-    def __init__(self, addr, logger, time_delay=0.5, self_addr=None):
+    def __init__(self, addr, logger, time_delay=0, self_addr=None):
         self.queue_in = Queue.Queue()
         self.queue_out = Queue.Queue()
         super(SDK, self).__init__(self.queue_in, self.queue_out,
@@ -45,8 +45,6 @@ class SDK(communication_base):
         self.state = 'close'
         self.time_delay = time_delay
         self.sim_obj = None
-        self.heartbeat_interval = 60
-        self.heartbeat_data = '0'
 
         # status data:
         # 4bytes

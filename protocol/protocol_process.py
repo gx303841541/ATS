@@ -43,7 +43,7 @@ class communication_base(object):
         self.connection = ''
         self.name = 'some guy'
         self.heartbeat_interval = 3
-        self.heartbeat_data = '0'
+        self.heartbeat_data = None
 
     @abstractmethod
     def protocol_handler(self, msg):
@@ -147,6 +147,10 @@ class communication_base(object):
         while True:
             if self.get_connection_state():
                 data = self.heartbeat_data
+                if not data:
+                    self.LOG.debug('No need control heartbeat, I am out!')
+                    sys.exit()
+
                 if isinstance(data, type(b'')):
                     tmp_data = data.decode('utf-8')
                 else:

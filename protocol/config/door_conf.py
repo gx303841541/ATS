@@ -40,11 +40,11 @@ Attribute_initialization = {
 
 
     "test_msgs": {
-        "interval": 50,
+        "interval": 1000,
         "msgs": {
-            "COM_UPLOAD_DEV_STATUS": 5,
-            "COM_UPLOAD_RECORD.Data[0].RecordType.REMOTE_OPEN_DOOR_RECORD": 8,
-            "COM_UPLOAD_RECORD.Data[0].RecordType.BUTTON_OPEN_DOOR_RECORD": 7,
+            "COM_UPLOAD_DEV_STATUS": 0,
+            "COM_UPLOAD_RECORD.Data[0].RecordType.REMOTE_OPEN_DOOR_RECORD": 0,
+            "COM_UPLOAD_RECORD.Data[0].RecordType.BUTTON_OPEN_DOOR_RECORD": 0,
             "COM_UPLOAD_EVENT.Data[0].EventType.NFC_EVENT": 10,
         }
     }

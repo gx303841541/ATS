@@ -102,23 +102,28 @@ class ArgHandle():
         return getattr(self.args, attrname)
 
     def check_args(self):
+        global ipv4_list
         if arg_handle.get_args('device_count') > 1 and not arg_handle.get_args('self_IP'):
             cprint.error_p(
-                "if device count big than 1, self_IP prefix must assign")
+                "if device count big than 1, self_IP start must assign")
             sys.exit()
         elif arg_handle.get_args('device_count') > 1:
             ipv4s = common_APIs.get_local_ipv4()
-            ipv4s = [ip for ip in ipv4s if re.search(
-                r'%s' % (arg_handle.get_args('self_IP')), ip)]
+            ip_prefix = '.'.join(arg_handle.get_args(
+                'self_IP').split('.')[0:-1])
+            ip_start = arg_handle.get_args('self_IP').split('.')[-1]
+            ipv4s = [ip for ip in ipv4s if re.search(r'%s' % (ip_prefix), ip) and arg_handle.get_args(
+                'self_IP').split('.')[-1] >= ip_start]
             if len(ipv4s) < arg_handle.get_args('device_count'):
                 cprint.error_p("Local ips: %d not enough" % (len(ipv4s)))
                 sys.exit()
             else:
-                global ipv4_list
                 ipv4_list = ipv4s
-
         else:
-            pass
+            ip = ''
+            if arg_handle.get_args('self_IP'):
+                ip = arg_handle.get_args('self_IP')
+            ipv4_list = [ip]
 
     def run(self):
         self.args = self.parser.parse_args()
@@ -127,10 +132,10 @@ class ArgHandle():
 
 
 class MyCmd(Cmd):
-    def __init__(self, logger, sim_obj=None):
+    def __init__(self, logger, sim_objs=None):
         Cmd.__init__(self)
         self.prompt = "SIM>"
-        self.sim_obj = sim_obj
+        self.sim_objs = sim_objs
         self.LOG = logger
 
     def help_log(self):
@@ -146,7 +151,9 @@ class MyCmd(Cmd):
             '4': logging.DEBUG,
         }
         if int(arg) in range(5):
-            self.LOG.set_level(level[arg])
+            for i in self.sim_objs:
+                cprint.notice_p("-" * 20)
+                self.sim_objs[i].LOG.set_level(level[arg])
         else:
             cprint.warn_p("unknow log level: %s!" % (arg))
 
@@ -154,27 +161,33 @@ class MyCmd(Cmd):
         cprint.notice_p("show state")
 
     def do_st(self, arg, opts=None):
-        self.sim_obj.status_show()
+        for i in self.sim_objs:
+            cprint.notice_p("-" * 20)
+            self.sim_objs[i].status_show()
 
     def help_record(self):
         cprint.notice_p("send record:")
-        for item in sorted(self.sim_obj.get_record_list()):
+        for item in sorted(self.sim_objs[0].get_record_list()):
             cprint.yinfo_p("%s" % item)
 
     def do_record(self, arg, opts=None):
-        if arg in self.sim_obj.get_record_list():
-            self.sim_obj.send_msg(self.sim_obj.get_upload_record(arg))
+        if arg in self.sim_objs[0].get_record_list():
+            for i in self.sim_objs:
+                self.sim_objs[i].send_msg(
+                    self.sim_objs[i].get_upload_record(arg))
         else:
             cprint.error_p("Unknow record: %s" % arg)
 
     def help_event(self):
         cprint.notice_p("send event")
-        for item in sorted(self.sim_obj.get_event_list()):
+        for item in sorted(self.sim_objs[0].get_event_list()):
             cprint.yinfo_p("%s" % item)
 
     def do_event(self, arg, opts=None):
-        if arg in self.sim_obj.get_event_list():
-            self.sim_obj.send_msg(self.sim_obj.get_upload_event(arg))
+        if arg in self.sim_objs[0].get_event_list():
+            for i in self.sim_objs:
+                self.sim_objs[i].send_msg(
+                    self.sim_objs[i].get_upload_event(arg))
         else:
             cprint.error_p("Unknow event: %s" % arg)
 
@@ -183,7 +196,8 @@ class MyCmd(Cmd):
 
     def do_set(self, arg, opts=None):
         args = arg.split()
-        self.sim_obj.set_item(args[0], args[1])
+        for i in self.sim_objs:
+            self.sim_objs[i].set_item(args[0], args[1])
 
     def default(self, arg, opts=None):
         try:
@@ -242,24 +256,20 @@ if __name__ == '__main__':
     thread_list = []
 
     sims = {}
-    if arg_handle.get_args('device_count') == 1:
-        self_addr = None
-        if arg_handle.get_args('self_IP'):
-            self_addr = (arg_handle.get_args('self_IP'),
-                         random.randint(arg_handle.get_args('server_port'), 65535))
-
-        sim=Door(logger = LOG, config_file = arg_handle.get_args('config_file'), server_addr = (
-            arg_handle.get_args('server_IP'), arg_handle.get_args('server_port')), self_addr = self_addr)
-        thread_list.append([sim.run_forever])
-        sims[0]=sim
-
+    if arg_handle.get_args('device_count') > 1:
+        log_level = logging.WARN
     else:
-        for i in range(arg_handle.get_args('device_count')):
-            self_addr = (ipv4_list[i], random.randint(arg_handle.get_args('server_port'), 65535))
-            sim = Door(logger=LOG, config_file=arg_handle.get_args('config_file'), server_addr=(
-                arg_handle.get_args('server_IP'), arg_handle.get_args('server_port')), self_addr=self_addr)
-            thread_list.append([sim.run_forever])
-            sims[i] = sim
+        log_level = logging.INFO
+    for i in range(arg_handle.get_args('device_count')):
+        dev_LOG = MyLogger('dev_sim_%d.log' % (i), clevel=log_level)
+
+        self_addr = (ipv4_list[i], random.randint(
+            arg_handle.get_args('server_port'), 65535))
+        sim = Door(logger=dev_LOG, config_file=arg_handle.get_args('config_file'), server_addr=(
+            arg_handle.get_args('server_IP'), arg_handle.get_args('server_port')), self_addr=self_addr)
+        # thread_list.append([sim.run_forever])
+        sim.run_forever()
+        sims[i] = sim
 
     sys_proc()
 
@@ -271,7 +281,7 @@ if __name__ == '__main__':
     if True:
         # signal.signal(signal.SIGINT, lambda signal,
         #              frame: cprint.notice_p('Exit SYSTEM: exit'))
-        my_cmd = MyCmd(logger=LOG, sim_obj=sim)
+        my_cmd = MyCmd(logger=LOG, sim_objs=sims)
         my_cmd.cmdloop()
 
     else:

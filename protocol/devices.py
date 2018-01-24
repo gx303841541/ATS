@@ -18,6 +18,7 @@ import struct
 import sys
 import threading
 import time
+from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from importlib import import_module
 
@@ -25,6 +26,7 @@ import APIs.common_APIs as common_APIs
 from basic.log_tool import MyLogger
 from basic.task import Task
 from protocol.light_protocol import SDK
+from protocol.wifi_protocol import Wifi
 
 if sys.getdefaultencoding() != 'utf-8':
     reload(sys)
@@ -34,6 +36,7 @@ coding = sys.getfilesystemencoding()
 
 
 class BaseSim():
+    __metaclass__ = ABCMeta
     status_lock = threading.Lock()
 
     def __init__(self, logger):
@@ -62,17 +65,32 @@ class BaseSim():
             if item.startswith('_'):
                 self.LOG.warn("%s: %s" % (item, str(self.__dict__[item])))
 
+    def send_msg(self, msg):
+        return self.sdk_obj.add_send_data(self.sdk_obj.msg_build(msg))
+
+    @abstractmethod
+    def protocol_handler(self, msg, ack=False):
+        pass
+
     def run_forever(self):
-        self.task_obj.add_task(
-            'status maintain', self.status_maintain, 10000000, 60)
-        self.task_obj.add_task('monitor event report',
-                               self.monitor_event_report, 10000000, 1)
-        return self.task_obj.task_proc()
+        thread_list = []
+        thread_list.append([self.sdk_obj.schedule_loop])
+        thread_list.append([self.sdk_obj.send_data_loop])
+        thread_list.append([self.sdk_obj.recv_data_loop])
+        thread_list.append([self.sdk_obj.heartbeat_loop])
+        thread_list.append([self.task_obj.task_proc])
+        thread_ids = []
+        for th in thread_list:
+            thread_ids.append(threading.Thread(target=th[0], args=th[1:]))
+
+        for th in thread_ids:
+            th.setDaemon(True)
+            th.start()
 
     def status_maintain(self):
         pass
 
-    def monitor_event_report(self):
+    def status_report_monitor(self):
         need_send_report = False
         if not hasattr(self, 'old_status'):
             self.old_status = defaultdict(lambda: {})
@@ -89,14 +107,13 @@ class BaseSim():
         if need_send_report:
             self.send_msg(self.get_event_report())
 
-    def send_msg(self, msg):
-        return self.sdk_obj.add_send_data(self.sdk_obj.msg_build(msg))
 
-
-class AirSim(BaseSim):
-    def __init__(self, logger):
+class Air(BaseSim):
+    def __init__(self, logger, mac='123456', time_delay=0.5):
         self.LOG = logger
-        self.sdk_obj = None
+        self.sdk_obj = Wifi(logger=logger, time_delay=time_delay,
+                            mac=mac, deviceCategory='airconditioner.new', self_addr=None)
+        self.sdk_obj.sim_obj = self
 
         # state data:
         self.task_obj = Task('AirSim-task', self.LOG)
@@ -238,10 +255,12 @@ class AirSim(BaseSim):
             self.LOG.warn('TODO in the feature!')
 
 
-class HangerSim(BaseSim):
-    def __init__(self, logger):
+class Hanger(BaseSim):
+    def __init__(self, logger, mac='123456', time_delay=0.5):
         self.LOG = logger
-        self.sdk_obj = None
+        self.sdk_obj = Wifi(addr=server_addr, logger=logger, time_delay=time_delay,
+                            mac=mac, deviceCategory='clothes_hanger.main', self_addr=None)
+        self.sdk_obj.sim_obj = self
 
         # state data:
         self.task_obj = Task('HangerSim-task', self.LOG)
@@ -462,9 +481,11 @@ class HangerSim(BaseSim):
 
 
 class WaterFilter(BaseSim):
-    def __init__(self, logger):
+    def __init__(self, logger, mac='123456', time_delay=0.5):
         self.LOG = logger
-        self.sdk_obj = None
+        self.sdk_obj = Wifi(addr=server_addr, logger=logger, time_delay=time_delay,
+                            mac=mac, deviceCategory='water_filter.main', self_addr=None)
+        self.sdk_obj.sim_obj = self
 
         # state data:
         self.task_obj = Task('WaterFilter-task', self.LOG)
@@ -582,9 +603,11 @@ class WaterFilter(BaseSim):
 
 
 class AirFilter(BaseSim):
-    def __init__(self, logger):
+    def __init__(self, logger, mac='123456', time_delay=0.5):
         self.LOG = logger
-        self.sdk_obj = None
+        self.sdk_obj = Wifi(addr=server_addr, logger=logger, time_delay=time_delay,
+                            mac=mac, deviceCategory='air_filter.main', self_addr=None)
+        self.sdk_obj.sim_obj = self
 
         # state data:
         self.task_obj = Task('AirFilter-task', self.LOG)
@@ -720,9 +743,11 @@ class AirFilter(BaseSim):
 
 
 class Washer(BaseSim):
-    def __init__(self, logger):
+    def __init__(self, logger, mac='123456', time_delay=0.5):
         self.LOG = logger
-        self.sdk_obj = None
+        self.sdk_obj = Wifi(addr=server_addr, logger=logger, time_delay=time_delay,
+                            mac=mac, deviceCategory='wash_machine.main', self_addr=None)
+        self.sdk_obj.sim_obj = self
 
         # state data:
         self.task_obj = Task('Washer-task', self.LOG)
@@ -940,27 +965,14 @@ class Door(BaseSim):
         self.task_obj = Task('Washer-task', self.LOG)
         self.dev_register = False
         self.command_list = getattr(self.sim_config, "Command_list")
+        self.create_tasks()
 
     def run_forever(self):
-        self.task_obj.add_task(
-            'status maintain', self.status_maintain, 10000000, 1)
-
-        self.task_obj.add_task('monitor event report',
-                               self.monitor_record, 10000000, 1)
-
-        self.task_obj.add_task(
-            'dev register', self.to_register_dev, 1, 1)
-
-        self.task_obj.add_task(
-            'check register', self.check_register_dev, 1, 5)
-
-        self.task_obj.add_task(
-            'heartbeat', self.to_send_heartbeat, 1000000, 60)
-
         thread_list = []
         thread_list.append([self.sdk_obj.schedule_loop])
         thread_list.append([self.sdk_obj.send_data_loop])
         thread_list.append([self.sdk_obj.recv_data_loop])
+        thread_list.append([self.sdk_obj.heartbeat_loop])
         thread_list.append([self.task_obj.task_proc])
         thread_list.append([self.msg_dispatch])
         thread_ids = []
@@ -970,6 +982,22 @@ class Door(BaseSim):
         for th in thread_ids:
             th.setDaemon(True)
             th.start()
+
+    def create_tasks(self):
+        self.task_obj.add_task(
+            'status maintain', self.status_maintain, 10000000, 1)
+
+        self.task_obj.add_task('monitor status report',
+                               self.status_report_monitor, 10000000, 1)
+
+        self.task_obj.add_task(
+            'dev register', self.to_register_dev, 1, 1)
+
+        self.task_obj.add_task(
+            'check register', self.check_register_dev, 1, 10)
+
+        self.task_obj.add_task(
+            'heartbeat', self.to_send_heartbeat, 1000000, 60)
 
     def msg_dispatch(self):
         msgs = []
@@ -992,7 +1020,7 @@ class Door(BaseSim):
                     self.send_msg(self.get_upload_event(tmp_msg[-1]))
                 else:
                     self.LOG.error("Unknow msg to dispatch: %s" % (msg))
-            time.sleep(9999)
+            # time.sleep(9999)
 
     def status_maintain(self):
         for item in self.SPECIAL_ITEM:
@@ -1015,7 +1043,7 @@ class Door(BaseSim):
                     self.add_item('_current_time_' + item,
                                   self.SPECIAL_ITEM[item]["wait_time"])
 
-    def monitor_record(self):
+    def status_report_monitor(self):
         need_send_report = False
         if not hasattr(self, 'old_status'):
             self.old_status = defaultdict(lambda: {})
@@ -1030,7 +1058,6 @@ class Door(BaseSim):
                 self.old_status[item] = copy.deepcopy(self.__dict__[item])
 
         if need_send_report:
-            self.LOG.warn(common_APIs.chinese_show("记录上传"))
             self.send_msg(self.get_upload_status())
 
     def to_register_dev(self):
@@ -1053,14 +1080,17 @@ class Door(BaseSim):
             sys.exit()
 
     def get_upload_status(self):
+        self.LOG.warn(common_APIs.chinese_show("设备状态上报"))
         return json.dumps(self.get_send_msg('COM_UPLOAD_DEV_STATUS'))
 
     def get_upload_record(self, record_type):
+        self.LOG.warn(common_APIs.chinese_show("记录上传"))
         report_msg = self.get_send_msg('COM_UPLOAD_RECORD')
         report_msg["Data"][0]["RecordType"] = record_type
         return json.dumps(report_msg)
 
     def get_upload_event(self, event_type):
+        self.LOG.warn(common_APIs.chinese_show("事件上报"))
         report_msg = self.get_send_msg('COM_UPLOAD_EVENT')
         report_msg["Data"][0]["EventType"] = event_type
         return json.dumps(report_msg)
@@ -1084,7 +1114,7 @@ class Door(BaseSim):
             self.LOG.warn('Unknow msg: %s!' % (msg['Command']))
             return None
 
-    def get_command_msg(self, command):
+    def get_msg_by_command(self, command):
         command = getattr(self.sim_config, command)
         command_str = str(command)
         command_str = re.sub(r'\'TIMENOW\'', '"%s"' % datetime.datetime.now().strftime(
@@ -1100,13 +1130,13 @@ class Door(BaseSim):
         return getattr(self.sim_config, "defined_event")
 
     def get_send_msg(self, command):
-        return self.get_command_msg(command)['send_msg']
+        return self.get_msg_by_command(command)['send_msg']
 
     def get_rsp_msg(self, command):
-        return self.get_command_msg(command)['rsp_msg']
+        return self.get_msg_by_command(command)['rsp_msg']
 
     def set_items(self, command, msg):
-        item_dict = self.get_command_msg(command)['set_item']
+        item_dict = self.get_msg_by_command(command)['set_item']
         for item, msg_param in item_dict.items():
             msg_param_list = msg_param.split('.')
             tmp_msg = msg[msg_param_list[0]]
@@ -1115,7 +1145,7 @@ class Door(BaseSim):
             self.set_item(item, tmp_msg)
 
     def action(self, command):
-        action_dict = self.get_command_msg(command)['action']
+        action_dict = self.get_msg_by_command(command)['action']
         for action_fun, action_param in action_dict:
             if action_fun == 'reconnection':
                 self.reconnection(action_param[0])

@@ -31,8 +31,7 @@ from APIs.common_APIs import (my_system, my_system_full_output,
 from basic.cprint import cprint
 from basic.log_tool import MyLogger
 from basic.task import Task
-from protocol.devices import AirFilter, AirSim, HangerSim, Washer, WaterFilter
-from protocol.wifi_protocol import Wifi
+from protocol.devices import Air, AirFilter, Hanger, Washer, WaterFilter
 
 if sys.getdefaultencoding() != 'utf-8':
     reload(sys)
@@ -89,10 +88,10 @@ class ArgHandle():
 
 
 class MyCmd(Cmd):
-    def __init__(self, logger, sdk_obj=None):
+    def __init__(self, logger, sim_obj=None):
         Cmd.__init__(self)
         self.prompt = "SIM>"
-        self.sdk_obj = sdk_obj
+        self.sim_obj = sim_obj
         self.LOG = logger
 
     def help_log(self):
@@ -116,7 +115,7 @@ class MyCmd(Cmd):
         cprint.notice_p("show state")
 
     def do_st(self, arg, opts=None):
-        self.sdk_obj.sim_obj.status_show()
+        self.sim_obj.status_show()
 
     def default(self, arg, opts=None):
         try:
@@ -175,28 +174,19 @@ if __name__ == '__main__':
     thread_list = []
 
     if arg_handle.get_args('device_type') == 'air':
-        sim = AirSim(logger=LOG)
-        deviceCategory = 'airconditioner.new'
+        Sim = Air
     elif arg_handle.get_args('device_type') == 'hanger':
-        sim = HangerSim(logger=LOG)
-        deviceCategory = 'clothes_hanger.main'
+        Sim = Hanger
     elif arg_handle.get_args('device_type') == 'waterfilter':
-        sim = WaterFilter(logger=LOG)
-        deviceCategory = 'water_filter.main'
+        Sim = WaterFilter
     elif arg_handle.get_args('device_type') == 'airfilter':
-        sim = AirFilter(logger=LOG)
-        deviceCategory = 'air_filter.main'
+        Sim = AirFilter
     elif arg_handle.get_args('device_type') == 'washer':
-        sim = Washer(logger=LOG)
-        deviceCategory = 'wash_machine.main'
-    wifi = Wifi(('192.168.10.1', 65381), logger=LOG,
-                sim_obj=sim, time_delay=arg_handle.get_args('time_delay'), mac=arg_handle.get_args('mac'), deviceCategory=deviceCategory)
-    thread_list.append([wifi.schedule_loop])
-    thread_list.append([wifi.send_data_loop])
-    thread_list.append([wifi.recv_data_loop])
-    thread_list.append([wifi.heartbeat_loop])
-    thread_list.append([sim.run_forever])
+        Sim = Washer
 
+    sim = Sim(logger=LOG, time_delay=arg_handle.get_args(
+        'time_delay'), mac=arg_handle.get_args('mac'))
+    sim.run_forever()
     sys_proc()
 
     if arg_handle.get_args('debug'):
@@ -228,7 +218,7 @@ if __name__ == '__main__':
     if True:
         signal.signal(signal.SIGINT, lambda signal,
                       frame: cprint.notice_p('Exit SYSTEM: exit'))
-        my_cmd = MyCmd(logger=LOG, sdk_obj=wifi)
+        my_cmd = MyCmd(logger=LOG, sim_obj=sim)
         my_cmd.cmdloop()
 
     else:

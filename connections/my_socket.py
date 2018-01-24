@@ -164,7 +164,6 @@ class MyServer:
                         tmp_data = data.encode('utf-8')
                     if self.debug:
                         if self.printB:
-                            self.LOG.yinfo("1")
                             self.LOG.yinfo(protocol_data_printB(
                                 tmp_data, title="Send data to " + self.conn_to_addr[client][0] + ":"))
                         else:

@@ -29,18 +29,20 @@ from protocol.protocol_process import communication_base
 class Wifi(communication_base):
     state_lock = threading.Lock()
 
-    def __init__(self, addr, logger, sim_obj, time_delay=0.5, mac='123456', deviceCategory='airconditioner.new'):
+    def __init__(self, logger=None, addr=('192.168.10.1', 65381), time_delay=0.5, mac='123456', deviceCategory='airconditioner.new', self_addr=None):
         self.queue_in = Queue.Queue()
         self.queue_out = Queue.Queue()
         super(Wifi, self).__init__(self.queue_in, self.queue_out,
-                                   logger=logger, left_data='', min_length=10)
+                                   logger=logger, left_data=b'', min_length=10)
         self.addr = addr
         self.name = 'WIFI module'
-        self.connection = my_socket.MyClient(addr, logger)
+        self.connection = my_socket.MyClient(
+            addr, logger, self_addr=self_addr, debug=False)
         self.state = 'close'
         self.time_delay = time_delay
-        self.sim_obj = sim_obj
-        self.sim_obj.wifi_obj = self
+        self.sim_obj = None
+        self.heartbeat_interval = 3
+        self.heartbeat_data = '0'
 
         # state data:
         # 2:short version
