@@ -23,6 +23,7 @@ from collections import defaultdict
 from importlib import import_module
 
 import APIs.common_APIs as common_APIs
+from APIs.common_APIs import bit_clear, bit_get, bit_set, protocol_data_printB
 from basic.log_tool import MyLogger
 from basic.task import Task
 from protocol.light_protocol import SDK
@@ -72,6 +73,13 @@ class BaseSim():
     def protocol_handler(self, msg, ack=False):
         pass
 
+    def stop(self):
+        self.need_stop = True
+        self.sdk_obj.stop()
+        if self.task_obj:
+            self.task_obj.stop()
+        self.LOG.warn('Thread %s stoped!' % (__name__))
+
     def run_forever(self):
         thread_list = []
         thread_list.append([self.sdk_obj.schedule_loop])
@@ -109,9 +117,9 @@ class BaseSim():
 
 
 class Air(BaseSim):
-    def __init__(self, logger, mac='123456', time_delay=0.5):
+    def __init__(self, logger, mac='123456', time_delay=500):
         self.LOG = logger
-        self.sdk_obj = Wifi(logger=logger, time_delay=time_delay,
+        self.sdk_obj = Wifi(logger=logger, time_delay=500,
                             mac=mac, deviceCategory='airconditioner.new', self_addr=None)
         self.sdk_obj.sim_obj = self
 
@@ -123,6 +131,14 @@ class Air(BaseSim):
         self._speed = "low"
         self._wind_up_down = 'off'
         self._wind_left_right = 'off'
+        self.create_tasks()
+
+    def create_tasks(self):
+        self.task_obj.add_task(
+            'status maintain', self.status_maintain, 10000000, 60)
+
+        self.task_obj.add_task('monitor event report',
+                               self.status_report_monitor, 10000000, 1)
 
     def get_event_report(self):
         report_msg = {
@@ -256,9 +272,9 @@ class Air(BaseSim):
 
 
 class Hanger(BaseSim):
-    def __init__(self, logger, mac='123456', time_delay=0.5):
+    def __init__(self, logger, mac='123456', time_delay=500):
         self.LOG = logger
-        self.sdk_obj = Wifi(addr=server_addr, logger=logger, time_delay=time_delay,
+        self.sdk_obj = Wifi(logger=logger, time_delay=time_delay,
                             mac=mac, deviceCategory='clothes_hanger.main', self_addr=None)
         self.sdk_obj.sim_obj = self
 
@@ -481,9 +497,9 @@ class Hanger(BaseSim):
 
 
 class WaterFilter(BaseSim):
-    def __init__(self, logger, mac='123456', time_delay=0.5):
+    def __init__(self, logger, mac='123456', time_delay=500):
         self.LOG = logger
-        self.sdk_obj = Wifi(addr=server_addr, logger=logger, time_delay=time_delay,
+        self.sdk_obj = Wifi(logger=logger, time_delay=time_delay,
                             mac=mac, deviceCategory='water_filter.main', self_addr=None)
         self.sdk_obj.sim_obj = self
 
@@ -603,9 +619,9 @@ class WaterFilter(BaseSim):
 
 
 class AirFilter(BaseSim):
-    def __init__(self, logger, mac='123456', time_delay=0.5):
+    def __init__(self, logger, mac='123456', time_delay=500):
         self.LOG = logger
-        self.sdk_obj = Wifi(addr=server_addr, logger=logger, time_delay=time_delay,
+        self.sdk_obj = Wifi(logger=logger, time_delay=time_delay,
                             mac=mac, deviceCategory='air_filter.main', self_addr=None)
         self.sdk_obj.sim_obj = self
 
@@ -743,9 +759,9 @@ class AirFilter(BaseSim):
 
 
 class Washer(BaseSim):
-    def __init__(self, logger, mac='123456', time_delay=0.5):
+    def __init__(self, logger, mac='123456', time_delay=500):
         self.LOG = logger
-        self.sdk_obj = Wifi(addr=server_addr, logger=logger, time_delay=time_delay,
+        self.sdk_obj = Wifi(logger=logger, time_delay=time_delay,
                             mac=mac, deviceCategory='wash_machine.main', self_addr=None)
         self.sdk_obj.sim_obj = self
 
@@ -960,6 +976,7 @@ class Door(BaseSim):
                            logger=logger, time_delay=0, self_addr=self_addr)
         self.sdk_obj.sim_obj = self
         self.sdk_obj.device_id = self._deviceID
+        self.need_stop = False
 
         # state data:
         self.task_obj = Task('Washer-task', self.LOG)
@@ -1008,7 +1025,7 @@ class Door(BaseSim):
         random.shuffle(msgs)
         for msg in msgs:
             self.LOG.debug(msg)
-        while True:
+        while self.need_stop == False:
             for msg in msgs:
                 time.sleep(self.test_msgs["interval"] / 1000.0)
                 tmp_msg = msg.split('.')
@@ -1162,6 +1179,56 @@ class Door(BaseSim):
             self.sim_config, "Attribute_initialization")
         for attribute_params, attribute_params_value in attribute_params_dict.items():
             self.add_item(attribute_params, attribute_params_value)
+
+
+class Led(BaseSim):
+    def __init__(self, logger):
+        self.LOG = logger
+        self.sdk_obj = None
+        self.need_stop = False
+
+        # state data:
+        self.task_obj = Task('Washer-task', self.LOG)
+
+    def protocol_handler(self, datas):
+        need_ASP_response = False
+        need_default_response = False
+        rsp_datas = {
+            'control': 1,
+            'seq': datas['seq'],
+            'addr': datas['addr'],
+            'cmd': 1,
+            'reserve': datas['reserve'],
+            'data': 1,
+        }
+        if bit_get(datas['control'], 7):
+            self.LOG.debug('ACK msg!')
+            return
+
+        if bit_get(datas['control'], 6):
+            self.LOG.INFO('Device: %s, disable default Response!' %
+                          (struct.unpack('3s', datas['addr'])))
+        else:
+            need_default_response = True
+            self.LOG.INFO('Device: %s, enable default Response!' %
+                          (struct.unpack('3s', datas['addr'])))
+
+        if bit_get(datas['control'], 5):
+            self.LOG.INFO('Device: %s, disable ASP Response!' %
+                          (struct.unpack('3s', datas['addr'])))
+        else:
+            need_ASP_response = True
+            self.LOG.INFO('Device: %s, enable ASP Response!' %
+                          (struct.unpack('3s', datas['addr'])))
+
+        if msg['Command'] in self.command_list:
+            self.set_items(msg['Command'], msg)
+            self.action(msg['Command'])
+            rsp_msg = self.get_rsp_msg(msg['Command'])
+            return json.dumps(rsp_msg)
+        else:
+            self.LOG.warn('Unknow msg: %s!' % (msg['Command']))
+            return None
 
 
 if __name__ == '__main__':

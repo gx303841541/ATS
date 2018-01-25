@@ -214,6 +214,23 @@ def get_local_ipv4():
     return [item[4][0] for item in addrs if ':' not in item[4][0]]
 
 
+def bit_set(byte, bit):
+    temp = struct.unpack('B', byte)
+    temp = temp | (1 << bit)
+    return struct.pack('B', temp)
+
+
+def bit_get(byte, bit):
+    temp = struct.unpack('B', byte)
+    return (temp & (1 << bit))
+
+
+def bit_clear(byte, bit):
+    temp = struct.unpack('B', byte)
+    temp = temp & ~(1 << bit)
+    return struct.pack('B', temp)
+
+
 if __name__ == '__main__':
     print(crc16(b'12345678'))
     print(crc16(b'1234567890'))

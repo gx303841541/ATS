@@ -138,12 +138,12 @@ class SDK(communication_base):
                 crc16 = struct.unpack('>H', msg[55:57])
                 data = json.loads(msg[57:57 + data_length].decode('utf-8'))
                 self.LOG.info("recv msg: " + self.convert_to_dictstr(data))
+                time.sleep(self.time_delay / 1000.0)
                 rsp_msg = self.sim_obj.protocol_handler(data, ack)
                 if rsp_msg:
                     final_rsp_msg = self.msg_build(rsp_msg)
                 else:
                     final_rsp_msg = 'No_need_send'
-                time.sleep(self.time_delay / 1000.0)
                 return final_rsp_msg
 
             else:

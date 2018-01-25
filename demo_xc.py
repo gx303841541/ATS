@@ -28,6 +28,7 @@ from APIs.common_APIs import (my_system, my_system_full_output,
                               my_system_no_check, protocol_data_printB)
 from basic.cprint import cprint
 from basic.log_tool import MyLogger
+from basic.async_task import AsyncBase
 
 if sys.platform == 'linux':
     import configparser as ConfigParser
@@ -107,22 +108,31 @@ def sys_cleanup():
 
 # sys start, should be modify by diff APP
 def sys_run():
-    event_loop = asyncio.get_event_loop()
-    state = event_loop.is_running()
 
-    def hello_word():
-        cprint.debug_p('hello word')
+    def hello_word(s='1', s1='2', s2='3'):
+        LOG.info("what is the fuck: %s, %s, %s" % (s, s1, s2))
 
-    @asyncio.coroutine
-    def stop_loop():
-        cprint.debug_p('stop loop')
+    loop_obj = AsyncBase(logger=LOG)
+    #loop_obj.add_func(loop_obj.get_func_obj(hello_word, 'your', s1='mum', s2='xxoo'), 5)
+    cro1 = loop_obj.make_coroutine(hello_word, 'your', s1='mum', s2='xxoo1')
+    cro2 = loop_obj.make_coroutine(hello_word, 'your', s1='mum', s2='xxoo2')
+    cro3 = loop_obj.make_coroutine(hello_word, 'your', s1='mum', s2='xxoo3')
 
-    event_loop.call_soon(hello_word)
-    event_loop.call_soon(hello_word)
-    event_loop.run_until_complete(stop_loop())
-    # event_loop.run_forever()
 
-    ''.startswith
+    loop_obj.task_proc_thread()
+
+    LOG.warn("async task has already started!")
+
+    loop_obj.add_func_to_thread(hello_word)
+    loop_obj.add_coroutine_to_thread(cro1)
+    loop_obj.add_coroutine_to_thread(cro2)
+    loop_obj.add_coroutine_to_thread(cro3)
+
+
+    time.sleep(999)
+
+    loop_obj.timer(functools.partial(hello_word, 'xxoo', 'fuck you '), 5)
+
 
     if arg_handle.get_args('cmdloop'):
         # cmd loop

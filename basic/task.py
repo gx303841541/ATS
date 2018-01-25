@@ -28,6 +28,11 @@ class Task():
             self.LOG = logger
         else:
             self.LOG = MyLogger(name + '.log', clevel=logging.DEBUG)
+        self.need_stop = False
+
+    def stop(self):
+        self.need_stop = True
+        self.LOG.warn('Thread %s stoped!' % (__name__))
 
     def add_task(self, name, func, run_times=1, interval=5, *argv):
         if name and func and int(run_times) >= 1 and int(interval) >= 1:
@@ -67,7 +72,7 @@ class Task():
             self.LOG.warn("No task...")
 
     def task_proc(self):
-        while True:
+        while self.need_stop == False:
             if len(self.tasks) == 0:
                 self.LOG.debug("No task!\n")
 

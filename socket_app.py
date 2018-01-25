@@ -152,6 +152,8 @@ class AirControl(communication_base):
         self.connection = my_socket.MyClient(
             addr, logger, debug=True, printB=True)
         self.state = 'close'
+        self.heartbeat_interval = 15
+        self.heartbeat_data = '1\n'
 
         # state data:
         self.msgst = defaultdict(lambda: {})
@@ -211,7 +213,7 @@ if __name__ == '__main__':
         sim = AirControl(('192.168.10.1', 5100), logger=LOG)
         thread_list.append([sim.schedule_loop])
         thread_list.append([sim.send_data_loop])
-        thread_list.append([sim.heartbeat_loop, 15, '1\n'])
+        thread_list.append([sim.heartbeat_loop])
 
     # run threads
     sys_proc()

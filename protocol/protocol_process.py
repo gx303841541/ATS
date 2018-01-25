@@ -44,6 +44,7 @@ class communication_base(object):
         self.name = 'some guy'
         self.heartbeat_interval = 3
         self.heartbeat_data = None
+        self.need_stop = False
 
     @abstractmethod
     def protocol_handler(self, msg):
@@ -120,7 +121,7 @@ class communication_base(object):
         return datas
 
     def send_data_loop(self):
-        while True:
+        while self.need_stop == False:
             if self.get_connection_state():
                 pass
             else:
@@ -132,7 +133,7 @@ class communication_base(object):
             self.send_data_once()
 
     def recv_data_loop(self):
-        while True:
+        while self.need_stop == False:
             if self.get_connection_state():
                 pass
             else:
@@ -144,7 +145,7 @@ class communication_base(object):
             self.recv_data_once()
 
     def heartbeat_loop(self):
-        while True:
+        while self.need_stop == False:
             if self.get_connection_state():
                 data = self.heartbeat_data
                 if not data:
@@ -162,7 +163,7 @@ class communication_base(object):
             time.sleep(self.heartbeat_interval)
 
     def schedule_loop(self):
-        while True:
+        while self.need_stop == False:
             if self.queue_in.empty():
                 continue
             else:
@@ -182,6 +183,10 @@ class communication_base(object):
                                 request_msg, title='%s: got invalid data:' % (self.name)))
                 else:
                     continue
+
+    def stop(self):
+        self.need_stop = True
+        self.LOG.warn('Thread %s stoped!' % (__name__))
 
 
 if __name__ == '__main__':

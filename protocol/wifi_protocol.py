@@ -29,7 +29,7 @@ from protocol.protocol_process import communication_base
 class Wifi(communication_base):
     state_lock = threading.Lock()
 
-    def __init__(self, logger=None, addr=('192.168.10.1', 65381), time_delay=0.5, mac='123456', deviceCategory='airconditioner.new', self_addr=None):
+    def __init__(self, logger=None, addr=('192.168.10.1', 65381), time_delay=500, mac='123456', deviceCategory='airconditioner.new', self_addr=None):
         self.queue_in = Queue.Queue()
         self.queue_out = Queue.Queue()
         super(Wifi, self).__init__(self.queue_in, self.queue_out,
@@ -71,8 +71,8 @@ class Wifi(communication_base):
         self.wait_added = '\x00'
 
     def msg_build(self, data):
-        self.LOG.debug(str(data))
-        self.LOG.yinfo(self.convert_to_dictstr(data))
+        # self.LOG.debug(str(data))
+        self.LOG.yinfo("send msg: " + self.convert_to_dictstr(data))
         msg_head = self.get_msg_head(data)
         msg_code = '\x01'
         msg_length = self.get_msg_length(msg_code + data + '\x00')
@@ -173,13 +173,13 @@ class Wifi(communication_base):
 
         elif msg[2] == b'\x03':
             dict_msg = json.loads(msg[3:-1])
-            self.LOG.info(self.convert_to_dictstr(dict_msg))
+            self.LOG.info("recv msg: " + self.convert_to_dictstr(dict_msg))
+            time.sleep(self.time_delay / 1000.0)
             rsp_msg = self.sim_obj.protocol_handler(dict_msg)
             if rsp_msg:
                 final_rsp_msg = self.msg_build(rsp_msg)
             else:
                 final_rsp_msg = 'No_need_send'
-            time.sleep(self.time_delay / 1000.0)
             return final_rsp_msg
 
         else:
