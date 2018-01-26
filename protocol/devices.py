@@ -119,7 +119,7 @@ class BaseSim():
 class Air(BaseSim):
     def __init__(self, logger, mac='123456', time_delay=500):
         self.LOG = logger
-        self.sdk_obj = Wifi(logger=logger, time_delay=500,
+        self.sdk_obj = Wifi(logger=logger, time_delay=time_delay,
                             mac=mac, deviceCategory='airconditioner.new', self_addr=None)
         self.sdk_obj.sim_obj = self
 
@@ -291,6 +291,14 @@ class Hanger(BaseSim):
         self._air_drying = 'off'
         self._air_drying_duration = 120
         self._air_drying_remain = 120
+        self.create_tasks()
+
+    def create_tasks(self):
+        self.task_obj.add_task(
+            'status maintain', self.status_maintain, 10000000, 60)
+
+        self.task_obj.add_task('monitor event report',
+                               self.status_report_monitor, 10000000, 1)
 
     def status_maintain(self):
         need_send_report = False
@@ -522,6 +530,14 @@ class WaterFilter(BaseSim):
             1: 1899,
             2: 1798,
         }
+        self.create_tasks()
+
+    def create_tasks(self):
+        self.task_obj.add_task(
+            'status maintain', self.status_maintain, 10000000, 60)
+
+        self.task_obj.add_task('monitor event report',
+                               self.status_report_monitor, 10000000, 1)
 
     def reset_filter_time(self, id):
         if int(id) in self._filter_time_used:
@@ -644,6 +660,14 @@ class AirFilter(BaseSim):
         self._control_status = 'auto'
         self._filter_time_used = '101'
         self._filter_time_remaining = '1899'
+        self.create_tasks()
+
+    def create_tasks(self):
+        self.task_obj.add_task(
+            'status maintain', self.status_maintain, 10000000, 60)
+
+        self.task_obj.add_task('monitor event report',
+                               self.status_report_monitor, 10000000, 1)
 
     def get_event_report(self):
         report_msg = {
@@ -777,6 +801,14 @@ class Washer(BaseSim):
         self._reserve_wash = 24
         self._mode = 'mix'
         self._time_left = 10
+        self.create_tasks()
+
+    def create_tasks(self):
+        self.task_obj.add_task(
+            'status maintain', self.status_maintain, 10000000, 60)
+
+        self.task_obj.add_task('monitor event report',
+                               self.status_report_monitor, 10000000, 1)
 
     def status_maintain(self):
         need_send_report = False
@@ -1189,46 +1221,57 @@ class Led(BaseSim):
 
         # state data:
         self.task_obj = Task('Washer-task', self.LOG)
+        self.create_tasks()
+
+    def create_tasks(self):
+        self.task_obj.add_task(
+            'status maintain', self.status_maintain, 10000000, 60)
+
+        self.task_obj.add_task('monitor event report',
+                               self.status_report_monitor, 10000000, 1)
+
+    def run_forever(self):
+        thread_list = []
+        thread_list.append([self.task_obj.task_proc])
+        thread_ids = []
+        for th in thread_list:
+            thread_ids.append(threading.Thread(target=th[0], args=th[1:]))
+
+        for th in thread_ids:
+            th.setDaemon(True)
+            th.start()
 
     def protocol_handler(self, datas):
         need_ASP_response = False
         need_default_response = False
         rsp_datas = {
-            'control': 1,
+            'control': datas['control'],
             'seq': datas['seq'],
             'addr': datas['addr'],
-            'cmd': 1,
+            'cmd': datas['cmd'],
             'reserve': datas['reserve'],
-            'data': 1,
+            'data': b'\x88\x88',
         }
         if bit_get(datas['control'], 7):
             self.LOG.debug('ACK msg!')
             return
 
         if bit_get(datas['control'], 6):
-            self.LOG.INFO('Device: %s, disable default Response!' %
+            self.LOG.info('Device: %s, disable default Response!' %
                           (struct.unpack('3s', datas['addr'])))
         else:
             need_default_response = True
-            self.LOG.INFO('Device: %s, enable default Response!' %
+            self.LOG.info('Device: %s, enable default Response!' %
                           (struct.unpack('3s', datas['addr'])))
 
         if bit_get(datas['control'], 5):
-            self.LOG.INFO('Device: %s, disable ASP Response!' %
+            self.LOG.info('Device: %s, disable ASP Response!' %
                           (struct.unpack('3s', datas['addr'])))
         else:
             need_ASP_response = True
             self.LOG.INFO('Device: %s, enable ASP Response!' %
                           (struct.unpack('3s', datas['addr'])))
-
-        if msg['Command'] in self.command_list:
-            self.set_items(msg['Command'], msg)
-            self.action(msg['Command'])
-            rsp_msg = self.get_rsp_msg(msg['Command'])
-            return json.dumps(rsp_msg)
-        else:
-            self.LOG.warn('Unknow msg: %s!' % (msg['Command']))
-            return None
+        return rsp_datas
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """sim
-by Kobe Gong. 2017-12-26
+by Kobe Gong. 2018-01-29
 """
 
 
@@ -17,6 +17,7 @@ import random
 import re
 import shutil
 import signal
+import socket
 import struct
 import subprocess
 import sys
@@ -31,7 +32,8 @@ from APIs.common_APIs import (my_system, my_system_full_output,
 from basic.cprint import cprint
 from basic.log_tool import MyLogger
 from basic.task import Task
-from protocol.devices import Air, AirFilter, Hanger, Washer, WaterFilter
+from protocol.devices import Led
+from protocol.zigbee_UART_protocol import ZIGBEE
 
 if sys.getdefaultencoding() != 'utf-8':
     reload(sys)
@@ -56,22 +58,22 @@ class ArgHandle():
             action='store',
             default=500,
             type=int,
-            help='time delay(ms) for msg send to router, default time is 500(ms)',
+            help='time delay(ms) for msg send to server, default time is 500(ms)',
         )
         parser.add_argument(
-            '-m', '--mac',
-            dest='mac',
+            '-p', '--port',
+            dest='serial_port',
             action='store',
-            default='123456',
-            help='Specify wifi module mac address',
+            default='5',
+            help='Specify serial port number',
         )
         parser.add_argument(
-            '--device',
-            dest='device_type',
+            '-c', '--count',
+            dest='device_count',
             action='store',
-            choices={'air', 'hanger', 'waterfilter', 'airfilter', 'washer'},
-            default='air',
-            help='Specify device type',
+            default=1,
+            type=int,
+            help='Specify how many devices to start, default is only 1',
         )
         return parser
 
@@ -88,10 +90,10 @@ class ArgHandle():
 
 
 class MyCmd(Cmd):
-    def __init__(self, logger, sim_obj=None):
+    def __init__(self, logger, sim_objs=None):
         Cmd.__init__(self)
         self.prompt = "SIM>"
-        self.sim_obj = sim_obj
+        self.sim_objs = sim_objs
         self.LOG = logger
 
     def help_log(self):
@@ -107,7 +109,9 @@ class MyCmd(Cmd):
             '4': logging.DEBUG,
         }
         if int(arg) in range(5):
-            self.LOG.set_level(level[arg])
+            for i in self.sim_objs:
+                cprint.notice_p("-" * 20)
+                self.sim_objs[i].LOG.set_level(level[arg])
         else:
             cprint.warn_p("unknow log level: %s!" % (arg))
 
@@ -115,14 +119,17 @@ class MyCmd(Cmd):
         cprint.notice_p("show state")
 
     def do_st(self, arg, opts=None):
-        self.sim_obj.status_show()
+        for i in self.sim_objs:
+            cprint.notice_p("-" * 20)
+            self.sim_objs[i].status_show()
 
     def help_set(self):
         cprint.notice_p("set state")
 
     def do_set(self, arg, opts=None):
         args = arg.split()
-        self.sim_obj.set_item(args[0], args[1])
+        for i in self.sim_objs:
+            self.sim_objs[i].set_item(args[0], args[1])
 
     def default(self, arg, opts=None):
         try:
@@ -168,7 +175,7 @@ def sys_cleanup():
 
 
 if __name__ == '__main__':
-    LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.INFO,
+    LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.DEBUG,
                    rlevel=logging.WARN)
     cprint = cprint(__name__)
 
@@ -180,52 +187,33 @@ if __name__ == '__main__':
     global thread_list
     thread_list = []
 
-    if arg_handle.get_args('device_type') == 'air':
-        Sim = Air
-    elif arg_handle.get_args('device_type') == 'hanger':
-        Sim = Hanger
-    elif arg_handle.get_args('device_type') == 'waterfilter':
-        Sim = WaterFilter
-    elif arg_handle.get_args('device_type') == 'airfilter':
-        Sim = AirFilter
-    elif arg_handle.get_args('device_type') == 'washer':
-        Sim = Washer
+    sims = {}
+    log_level = logging.INFO
 
-    sim = Sim(logger=LOG, time_delay=arg_handle.get_args(
-        'time_delay'), mac=arg_handle.get_args('mac'))
-    sim.run_forever()
+    zigbee_obj = ZIGBEE('COM' + arg_handle.get_args('serial_port'),
+                        logger=LOG, time_delay=arg_handle.get_args('time_delay'))
+    zigbee_obj.run_forever()
+
+    for i in range(arg_handle.get_args('device_count')):
+        dev_LOG = MyLogger('dev_sim_%d.log' % (i), clevel=log_level)
+        sim = zigbee_obj.add_device(Led, b'\x11\x22\x33', dev_LOG)
+        if sim:
+            sims[i] = sim
+        else:
+            LOG.critical('Add device: %s fail!' % i)
+            sys.exit()
+
     sys_proc()
 
     if arg_handle.get_args('debug'):
-        dmsg = {
-            "method": "dm_set",
-            "req_id": 178237278,
-            "nodeid": "water_filter.main.control",
-            "params": {
-                "attribute": {
-                    "control": "clean"
-                }
-            }
-        }
-
-        dmsg = {
-            "method": "dm_set",
-            "req_id": 178237278,
-            "nodeid": "clothes_hanger.main.sterilization",
-            "params": {
-                "attribute": {
-                    "sterilization": "on",
-                }
-            }
-        }
+        dmsg = b'\x55\xaa\x10\x27\x01\x11\x22\x33\x77\x88\x99\x11\x33\x55\x66\x22\x88\x11\x11'
         time.sleep(1)
-        sim.wifi_obj.queue_in.put(
-            b'\x77\x56\x43\xaa' + struct.pack('>H', len(json.dumps(dmsg)) + 2) + b'\x03' + json.dumps(dmsg) + b'\x00')
+        zigbee_obj.queue_in.put(dmsg)
 
     if True:
-        signal.signal(signal.SIGINT, lambda signal,
-                      frame: cprint.notice_p('Exit SYSTEM: exit'))
-        my_cmd = MyCmd(logger=LOG, sim_obj=sim)
+        # signal.signal(signal.SIGINT, lambda signal,
+        #              frame: cprint.notice_p('Exit SYSTEM: exit'))
+        my_cmd = MyCmd(logger=LOG, sim_objs=sims)
         my_cmd.cmdloop()
 
     else:

@@ -7,6 +7,7 @@ by Kobe Gong. 2017-9-13
 
 import binascii
 import datetime
+import json
 import logging
 import os
 import re
@@ -55,18 +56,18 @@ class communication_base(object):
         pass
 
     def run_forever(self):
-        while True:
-            if self.get_connection_state() == 'online':
-                pass
-            else:
-                if self.conection_setup():
-                    pass
-                else:
-                    time.sleep(10)
-                    continue
+        thread_list = []
+        thread_list.append([self.schedule_loop])
+        thread_list.append([self.send_data_loop])
+        thread_list.append([self.recv_data_loop])
+        # thread_list.append([self.heartbeat_loop])
+        thread_ids = []
+        for th in thread_list:
+            thread_ids.append(threading.Thread(target=th[0], args=th[1:]))
 
-            self.recv_data_once()
-            self.send_data_once()
+        for th in thread_ids:
+            th.setDaemon(True)
+            th.start()
 
     @abstractmethod
     def msg_build(self):
@@ -187,6 +188,20 @@ class communication_base(object):
     def stop(self):
         self.need_stop = True
         self.LOG.warn('Thread %s stoped!' % (__name__))
+
+    def convert_to_dictstr(self, src):
+        if isinstance(src, dict):
+            return json.dumps(src, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
+
+        elif isinstance(src, str):
+            return json.dumps(json.loads(src), sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
+
+        elif isinstance(src, bytes):
+            return json.dumps(json.loads(src.decode('utf-8')), sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
+
+        else:
+            self.LOG.error('Unknow type(%s): %s' % (src, str(type(src))))
+            return None
 
 
 if __name__ == '__main__':

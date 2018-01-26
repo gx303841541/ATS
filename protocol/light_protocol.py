@@ -187,17 +187,3 @@ class SDK(communication_base):
             self.LOG.debug(protocol_data_printB(
                 datas, " recv data:"))
         return datas
-
-    def convert_to_dictstr(self, src):
-        if isinstance(src, dict):
-            return json.dumps(src, sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
-
-        elif isinstance(src, str):
-            return json.dumps(json.loads(src), sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
-
-        elif isinstance(src, bytes):
-            return json.dumps(json.loads(src.decode('utf-8')), sort_keys=True, indent=4, separators=(',', ': '), ensure_ascii=False)
-
-        else:
-            self.LOG.error('Unknow type(%s): %s' % (src, str(type(src))))
-            return None

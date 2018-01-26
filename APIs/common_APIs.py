@@ -215,18 +215,18 @@ def get_local_ipv4():
 
 
 def bit_set(byte, bit):
-    temp = struct.unpack('B', byte)
+    temp = struct.unpack('B', byte)[0]
     temp = temp | (1 << bit)
     return struct.pack('B', temp)
 
 
 def bit_get(byte, bit):
-    temp = struct.unpack('B', byte)
+    temp = struct.unpack('B', byte)[0]
     return (temp & (1 << bit))
 
 
 def bit_clear(byte, bit):
-    temp = struct.unpack('B', byte)
+    temp = struct.unpack('B', byte)[0]
     temp = temp & ~(1 << bit)
     return struct.pack('B', temp)
 
