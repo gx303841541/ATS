@@ -30,13 +30,7 @@ from basic.cprint import cprint
 from basic.log_tool import MyLogger
 from basic.async_task import AsyncBase
 
-if sys.platform == 'linux':
-    import configparser as ConfigParser
-    import queue as Queue
-else:
-    import ConfigParser
-    import Queue
-# cmd line arg handler
+
 
 
 class ArgHandle():

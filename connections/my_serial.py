@@ -167,6 +167,7 @@ class Robot():
         self.serial.close()
 
     def led_access_net(self, open_close_time=6):
+        return
         for i in range(open_close_time):
             self.open()
             time.sleep(1.5)

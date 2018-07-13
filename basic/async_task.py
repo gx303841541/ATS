@@ -17,9 +17,6 @@ import functools
 
 from basic.log_tool import MyLogger
 
-if sys.getdefaultencoding() != 'utf-8':
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
 
 
 LOG = MyLogger(os.path.abspath(sys.argv[0]).replace('py', 'log'), clevel=logging.DEBUG, renable=False)
